@@ -1,0 +1,40 @@
+<.header>
+  Listing Timeline
+  <:actions>
+    <.link patch={~p"/likes/new"}>
+      <.button>New Like</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="likes"
+  rows={@streams.likes}
+  row_click={fn {_id, like} -> JS.navigate(~p"/likes/#{like}") end}
+>
+  <:action :let={{_id, like}}>
+    <div class="sr-only">
+      <.link navigate={~p"/likes/#{like}"}>Show</.link>
+    </div>
+    <.link patch={~p"/likes/#{like}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, like}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: like.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="like-modal" show on_cancel={JS.patch(~p"/likes")}>
+  <.live_component
+    module={ShinstagramWeb.LikeLive.FormComponent}
+    id={@like.id || :new}
+    title={@page_title}
+    action={@live_action}
+    like={@like}
+    patch={~p"/likes"}
+  />
+</.modal>

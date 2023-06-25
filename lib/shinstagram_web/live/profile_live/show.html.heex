@@ -1,0 +1,66 @@
+<div class="sm:flex">
+  <div class="mb-4 flex-shrink-0 sm:mb-0 sm:mr-4">
+    <img
+      class="h-32 w-full border border-gray-300 bg-white text-gray-300 sm:w-32"
+      src={@profile.profile_photo}
+      alt=""
+    />
+  </div>
+  <div>
+    <h4 class="text-lg font-bold"><%= @profile.name %></h4>
+  </div>
+</div>
+
+<.link patch={~p"/profiles/#{@profile.username}/show/edit"} phx-click={JS.push_focus()}>
+  <.button>Edit profile</.button>
+</.link>
+
+<h5>Timeline</h5>
+
+<div id="posts" phx-update="stream">
+  <div :for={{id, post} <- @streams.posts} id={id}>
+    <img src={post.photo} alt="" />
+
+    <p class="font-bold"><%= post.caption %></p>
+
+    <p>
+      Liked by
+      <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(post.id) do %>
+        <.link
+          class="hover:underline"
+          navigate={~p"/#{Shinstagram.Profiles.get_profile!(post.profile_id).username}"}
+        >
+          <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
+        </.link>
+      <% end %>
+    </p>
+
+    <div>
+      <button phx-click="like" phx-value-post_id={post.id}>Like</button>
+
+      <.link patch={~p"/posts/#{post}/edit"}>Edit</.link>
+      <.link
+        phx-click={JS.push("delete", value: %{id: post.id}) |> hide("##{id}")}
+        data-confirm="Are you sure?"
+      >
+        Delete
+      </.link>
+    </div>
+  </div>
+</div>
+
+<.modal
+  :if={@live_action == :edit}
+  id="profile-modal"
+  show
+  on_cancel={JS.patch(~p"/#{@profile.username}")}
+>
+  <.live_component
+    module={ShinstagramWeb.ProfileLive.FormComponent}
+    id={@profile.id}
+    title={@page_title}
+    action={@live_action}
+    profile={@profile}
+    patch={~p"/#{@profile}"}
+  />
+</.modal>

@@ -1,0 +1,48 @@
+<.header>
+  Listing Profiles
+  <:actions>
+    <.link patch={~p"/profiles/new"}>
+      <.button>New Profile</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="profiles"
+  rows={@streams.profiles}
+  row_click={fn {_id, profile} -> JS.navigate(~p"/#{profile.username}") end}
+>
+  <:col :let={{_id, profile}} label="Name"><%= profile.name %></:col>
+  <:col :let={{_id, profile}} label="Profile photo"><%= profile.profile_photo %></:col>
+  <:col :let={{_id, profile}} label="Username"><%= profile.username %></:col>
+  <:action :let={{_id, profile}}>
+    <div class="sr-only">
+      <.link navigate={~p"/#{profile}"}>Show</.link>
+    </div>
+    <.link patch={~p"/profiles/#{profile}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, profile}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: profile.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal
+  :if={@live_action in [:new, :edit]}
+  id="profile-modal"
+  show
+  on_cancel={JS.patch(~p"/profiles")}
+>
+  <.live_component
+    module={ShinstagramWeb.ProfileLive.FormComponent}
+    id={@profile.id || :new}
+    title={@page_title}
+    action={@live_action}
+    profile={@profile}
+    patch={~p"/profiles"}
+  />
+</.modal>

@@ -1,0 +1,25 @@
+<.header>
+  Like <%= @like.id %>
+  <:subtitle>This is a like record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/likes/#{@like}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit like</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+</.list>
+
+<.back navigate={~p"/likes"}>Back to likes</.back>
+
+<.modal :if={@live_action == :edit} id="like-modal" show on_cancel={JS.patch(~p"/likes/#{@like}")}>
+  <.live_component
+    module={ShinstagramWeb.LikeLive.FormComponent}
+    id={@like.id}
+    title={@page_title}
+    action={@live_action}
+    like={@like}
+    patch={~p"/likes/#{@like}"}
+  />
+</.modal>

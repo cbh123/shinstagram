@@ -1,0 +1,16 @@
+<img src={@post.photo} alt="" />
+
+<p><%= @post.caption %></p>
+
+<.back navigate={~p"/posts"}>Back to posts</.back>
+
+<.modal :if={@live_action == :edit} id="post-modal" show on_cancel={JS.patch(~p"/posts/#{@post}")}>
+  <.live_component
+    module={ShinstagramWeb.PostLive.FormComponent}
+    id={@post.id}
+    title={@page_title}
+    action={@live_action}
+    post={@post}
+    patch={~p"/posts/#{@post}"}
+  />
+</.modal>

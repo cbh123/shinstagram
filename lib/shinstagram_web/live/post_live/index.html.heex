@@ -1,0 +1,47 @@
+<.link patch={~p"/posts/new"}>
+  <.button>New Post</.button>
+</.link>
+
+<div id="posts" phx-update="stream" class="space-y-4 max-w-xl">
+  <div :for={{id, post} <- @streams.posts} id={id}>
+    <img class="h-96 w-96" src={post.photo} alt={post.photo_prompt} loading="lazy" />
+
+    <p class="font-bold"><%= post.caption %></p>
+    <p class="font-bold"><%= post.photo_prompt %></p>
+
+    <p>
+      Liked by
+      <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(post.id) do %>
+        <.link
+          class="hover:underline"
+          navigate={~p"/#{Shinstagram.Profiles.get_profile!(post.profile_id).username}"}
+        >
+          <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
+        </.link>
+      <% end %>
+    </p>
+
+    <div>
+      <button phx-click="like" phx-value-post_id={post.id}>Like</button>
+
+      <.link patch={~p"/posts/#{post}/edit"}>Edit</.link>
+      <.link
+        phx-click={JS.push("delete", value: %{id: post.id}) |> hide("##{id}")}
+        data-confirm="Are you sure?"
+      >
+        Delete
+      </.link>
+    </div>
+  </div>
+</div>
+
+<.modal :if={@live_action in [:new, :edit]} id="post-modal" show on_cancel={JS.patch(~p"/")}>
+  <.live_component
+    module={ShinstagramWeb.PostLive.FormComponent}
+    id={@post.id || :new}
+    title={@page_title}
+    action={@live_action}
+    post={@post}
+    patch={~p"/"}
+  />
+</.modal>
