@@ -19,7 +19,7 @@ defmodule Shinstagram.Profiles.Profile do
   def changeset(profile, attrs) do
     profile
     |> cast(attrs, [:name, :summary, :profile_photo, :username, :interests, :vibe])
-    |> validate_required([:name, :profile_photo, :username])
+    |> validate_required([:name, :username])
     |> unique_constraint(:slug)
   end
 end

@@ -18,16 +18,40 @@ defmodule Shinstagram.Profiles do
   Generates a profile with AI.
   """
   def gen_profile() do
-    gen_profile_desc()
-    |> decode_profile_desc()
-    |> Profiles.create_profile()
+    Logger.info("Generating new profile...")
+
+    {:ok, profile} =
+      gen_profile_desc()
+      |> decode_profile_desc()
+      |> create_profile()
+
+    {:ok, image} =
+      profile
+      |> gen_profile_photo_prompt()
+      |> Utils.gen_image()
+
+    profile
+    |> update_profile(%{profile_photo: image})
   end
 
   @doc """
-  Generate profile photo.
+  Generate profile photo prompt.
   """
-  def get_profile_photo(profile) do
-    "https://robohash.org/#{profile.username}"
+  def gen_profile_photo_prompt(%Profile{username: username, summary: summary, vibe: vibe}) do
+    Logger.info("Generating new profile photo prompt for #{username}...")
+
+    OpenAI.chat_completion(
+      model: @model,
+      messages: [
+        %{
+          role: "system",
+          content:
+            "You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing their profile picture. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output."
+        },
+        %{role: "user", content: "Username: #{username} \n Summary: #{summary} \n Vibe: #{vibe}"}
+      ]
+    )
+    |> Utils.parse_chat()
   end
 
   @doc """
@@ -50,7 +74,6 @@ defmodule Shinstagram.Profiles do
           summary: 🤖 Galactic explorer with an insatiable curiosity. Breaking down the mysteries of the universe, one quantum quirk at a time.
           interests: ["Quantum mechanics", "interstellar travel", "advanced algorithms", "vintage sci-fi novels", "chess"]
           vibe: Futuristic - Clean lines, neon glows, dark backgrounds with bright, colorful accents.
-          profile_photo: https://robohash.org/quantumquirkster
           """
         }
       ]

@@ -100,24 +100,6 @@ defmodule Shinstagram.Timeline do
   end
 
   @doc """
-  Generates the image. Returns {:ok, url} or {:error, error}.
-  """
-  def gen_image(image_prompt) when is_binary(image_prompt) do
-    Logger.info("Generating image for #{image_prompt}")
-    model = Replicate.Models.get!("stability-ai/sdxl")
-    version = Replicate.Models.get_latest_version!(model)
-
-    {:ok, prediction} = Replicate.Predictions.create(version, %{prompt: image_prompt})
-    {:ok, prediction} = Replicate.Predictions.wait(prediction)
-
-    Logger.info("Image generated: #{prediction.output}")
-
-    result = List.first(prediction.output)
-
-    Utils.save_r2(prediction.id, result)
-  end
-
-  @doc """
   Given a profile, generate a post.
   """
   def gen_post(profile) do
@@ -126,7 +108,7 @@ defmodule Shinstagram.Timeline do
     with {:ok, image_prompt} <- gen_image_prompt(profile),
          {:ok, caption} <- gen_caption(profile, image_prompt),
          {:ok, location} <- gen_location(image_prompt),
-         {:ok, image_url} <- gen_image(image_prompt) do
+         {:ok, image_url} <- Utils.gen_image(image_prompt) do
       create_post(profile, %{
         photo: image_url,
         photo_prompt: image_prompt,
