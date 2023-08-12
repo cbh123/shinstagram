@@ -8,42 +8,15 @@
   </div>
 </.panel>
 
-<div id="posts" phx-update="stream" class="space-y-4 mt-6 max-w-xl">
+<div id="posts" phx-update="stream" class="space-y-8 mt-12 max-w-2xl mx-auto">
   <div :for={{id, post} <- @streams.posts} id={id}>
-    <img class="h-96 w-96" src={post.photo} alt={post.photo_prompt} loading="lazy" />
-
-    <p class="font-bold"><%= post.caption |> String.replace("\"", "") %></p>
-    <p>
-      Posted by
-      <.link
-        class="font-bold"
-        navigate={~p"/#{Shinstagram.Profiles.get_profile!(post.profile_id).username}"}
-      >
-        <%= Shinstagram.Profiles.get_profile!(post.profile_id).username %>
-      </.link>
-    </p>
-
-    <p>
-      <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(post.id) do %>
-        <.link
-          class="hover:underline"
-          navigate={~p"/#{Shinstagram.Profiles.get_profile!(post.profile_id).username}"}
-        >
-          <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
-        </.link>
-      <% end %>
-    </p>
-
-    <div>
-      <button phx-click="like" phx-value-post_id={post.id}>Like</button>
-
-      <.link
-        phx-click={JS.push("delete", value: %{id: post.id}) |> hide("##{id}")}
-        data-confirm="Are you sure?"
-      >
-        Delete
-      </.link>
-    </div>
+    <.live_component
+      module={ShinstagramWeb.PostLive.PostComponent}
+      id={id}
+      post={post}
+      profile={post.profile}
+      patch={~p"/"}
+    />
   </div>
 </div>
 

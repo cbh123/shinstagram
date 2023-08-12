@@ -10,14 +10,14 @@ defmodule Shinstagram.Timeline.Post do
     belongs_to(:profile, Shinstagram.Profiles.Profile)
     has_many(:likes, Shinstagram.Timeline.Like)
     field(:photo_prompt, :string)
-
+    field :location, :string
     timestamps()
   end
 
   @doc false
   def changeset(post, attrs) do
     post
-    |> cast(attrs, [:photo, :caption, :photo_prompt])
+    |> cast(attrs, [:photo, :caption, :photo_prompt, :location])
     |> validate_required([:photo, :caption, :photo_prompt])
   end
 end

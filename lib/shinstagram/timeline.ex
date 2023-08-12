@@ -13,6 +13,7 @@ defmodule Shinstagram.Timeline do
   require Logger
 
   @model "gpt-4"
+  @dumb_model "gpt-3.5-turbo"
 
   @doc """
   Generates a profile with AI.
@@ -114,13 +115,40 @@ defmodule Shinstagram.Timeline do
         %{
           role: "system",
           content:
-            "You are create funny social network captions. The following profile is posting a photo to a social network and we need a caption for the photo. Can you output the caption? It should match the vibe of the profile. Don't include the word 'caption' in your output.
+            "You create funny social network captions. The following profile is posting a photo to a social network and we need a caption for the photo. Can you output the caption? It should match the vibe of the profile. Don't include the word 'caption' in your output.
             "
         },
         %{
           role: "user",
           content:
             "Username: #{username} \n Summary: #{summary} \n Vibe: #{vibe}. Photo description: #{image_prompt}"
+        }
+      ]
+    )
+    |> Utils.parse_chat()
+  end
+
+  def gen_location(image_prompt) do
+    Logger.info("Generating location for #{image_prompt}")
+
+    OpenAI.chat_completion(
+      model: @model,
+      messages: [
+        %{
+          role: "system",
+          content:
+            "You make up a location for a given image prompt. Be creative! Don't give a pre-amble or anything. Just say the location. Keep your answer under 50 characters.
+
+            Examples
+            Cyberspace
+            Tokyo, Japan
+            Zorbitron 3000, Nebula APhi
+            Jerusalem, 302 BC
+            "
+        },
+        %{
+          role: "user",
+          content: image_prompt
         }
       ]
     )
@@ -153,8 +181,14 @@ defmodule Shinstagram.Timeline do
 
     with {:ok, image_prompt} <- gen_image_prompt(profile),
          {:ok, caption} <- gen_caption(profile, image_prompt),
+         {:ok, location} <- gen_location(image_prompt),
          {:ok, image_url} <- gen_image(image_prompt) do
-      create_post(profile, %{photo: image_url, photo_prompt: image_prompt, caption: caption})
+      create_post(profile, %{
+        photo: image_url,
+        photo_prompt: image_prompt,
+        caption: caption,
+        location: location
+      })
     else
       {:error, error} -> {:error, error}
     end
@@ -171,15 +205,17 @@ defmodule Shinstagram.Timeline do
   """
 
   def list_posts do
-    Repo.all(Post, order: [:desc, :inserted_at])
+    from(p in Post, order_by: [desc: p.inserted_at])
+    |> Repo.all()
+    |> Repo.preload(:profile)
   end
 
   def list_posts_by_profile(profile) do
-    Repo.all(from(p in Post, where: p.profile_id == ^profile.id))
+    Repo.all(from(p in Post, where: p.profile_id == ^profile.id, order_by: [desc: p.inserted_at]))
   end
 
   def list_recent_posts(limit) do
-    Repo.all(Post, order: [:desc, :inserted_at], limit: limit)
+    Repo.all(Post, order_by: [:desc, :inserted_at], limit: limit)
   end
 
   @doc """

@@ -24,6 +24,12 @@ defmodule ShinstagramWeb.PostLive.Index do
     |> assign(:post, nil)
   end
 
+  defp apply_action(socket, :new, _params) do
+    socket
+    |> assign(:page_title, "New Post")
+    |> assign(:post, %Post{})
+  end
+
   def handle_event("gen-profile", _, socket) do
     {:ok, profile} = Timeline.gen_profile()
 
