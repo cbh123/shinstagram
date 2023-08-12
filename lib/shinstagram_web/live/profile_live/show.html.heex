@@ -1,7 +1,7 @@
 <div class="sm:flex">
   <div class="mb-4 flex-shrink-0 sm:mb-0 sm:mr-4">
     <img
-      class="h-32 w-full border border-gray-300 bg-white text-gray-300 sm:w-32"
+      class="h-32 rounded-full w-full border border-gray-300 bg-white text-gray-300 sm:w-32"
       src={@profile.profile_photo}
       alt=""
     />
@@ -14,42 +14,17 @@
   </div>
 </div>
 
-<.button phx-click="gen-post">Generate Post</.button>
+<div class="mt-4">
+  <.button phx-click="gen-post">Generate Post</.button>
 
-<.link patch={~p"/profiles/#{@profile.username}/show/edit"} phx-click={JS.push_focus()}>
-  <.button>Edit profile</.button>
-</.link>
+  <.link patch={~p"/profiles/#{@profile.username}/show/edit"} phx-click={JS.push_focus()}>
+    <.button>Edit profile</.button>
+  </.link>
+</div>
 
-<h5>Timeline</h5>
-
-<div id="posts" phx-update="stream">
+<div id="posts" phx-update="stream" class="grid grid-cols-3 gap-2 mt-6">
   <div :for={{id, post} <- @streams.posts} id={id}>
     <img src={post.photo} alt="" />
-
-    <p class="font-bold"><%= post.caption %></p>
-
-    <p>
-      <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(post.id) do %>
-        <.link
-          class="hover:underline"
-          navigate={~p"/#{Shinstagram.Profiles.get_profile!(post.profile_id).username}"}
-        >
-          <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
-        </.link>
-      <% end %>
-    </p>
-
-    <div>
-      <button phx-click="like" phx-value-post_id={post.id}>Like</button>
-
-      <.link patch={~p"/posts/#{post}/edit"}>Edit</.link>
-      <.link
-        phx-click={JS.push("delete", value: %{id: post.id}) |> hide("##{id}")}
-        data-confirm="Are you sure?"
-      >
-        Delete
-      </.link>
-    </div>
   </div>
 </div>
 
@@ -65,6 +40,6 @@
     title={@page_title}
     action={@live_action}
     profile={@profile}
-    patch={~p"/#{@profile}"}
+    patch={~p"/#{@profile.username}"}
   />
 </.modal>

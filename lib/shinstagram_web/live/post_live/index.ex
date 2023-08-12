@@ -1,6 +1,7 @@
 defmodule ShinstagramWeb.PostLive.Index do
   use ShinstagramWeb, :live_view
 
+  alias Shinstagram.Profiles
   alias Shinstagram.Timeline
   alias Shinstagram.Timeline.Post
 
@@ -31,7 +32,7 @@ defmodule ShinstagramWeb.PostLive.Index do
   end
 
   def handle_event("gen-profile", _, socket) do
-    {:ok, profile} = Timeline.gen_profile()
+    {:ok, profile} = Profiles.gen_profile()
 
     {:noreply,
      socket |> redirect(to: ~p"/#{profile.username}") |> put_flash(:info, "New profile created")}

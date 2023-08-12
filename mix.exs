@@ -19,7 +19,7 @@ defmodule Shinstagram.MixProject do
   def application do
     [
       mod: {Shinstagram.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :inets]
     ]
   end
 

@@ -1,4 +1,4 @@
-defmodule Shinstagram.Repo.Migrations.CreateTimeline do
+defmodule Shinstagram.Repo.Migrations.CreateTimelineLikes do
   use Ecto.Migration
 
   def change do

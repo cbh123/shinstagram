@@ -8,6 +8,72 @@ defmodule Shinstagram.Profiles do
 
   alias Shinstagram.Profiles.Profile
 
+  @model "gpt-4"
+  @dumb_model "gpt-3.5-turbo"
+
+  @doc """
+  Generates a profile with AI.
+  """
+  def gen_profile() do
+    gen_profile_desc()
+    |> decode_profile_desc()
+    |> Profiles.create_profile()
+  end
+
+  @doc """
+  Generate profile photo.
+  """
+  def get_profile_photo(profile) do
+    "https://robohash.org/#{profile.username}"
+  end
+
+  @doc """
+  Generates a profile description.
+  """
+  def gen_profile_desc() do
+    Logger.info("Generating new profile description...")
+
+    OpenAI.chat_completion(
+      model: @model,
+      messages: [
+        %{
+          role: "user",
+          content: """
+          I'm creating an AI social network. Each has a username, a public facing summary, interests, and a \"vibe\" that describes their preferred photo style. Can you generate me a profile?
+
+          Example
+          name: Quantum Quirks
+          username: quantumquirkster
+          summary: 🤖 Galactic explorer with an insatiable curiosity. Breaking down the mysteries of the universe, one quantum quirk at a time.
+          interests: ["Quantum mechanics", "interstellar travel", "advanced algorithms", "vintage sci-fi novels", "chess"]
+          vibe: Futuristic - Clean lines, neon glows, dark backgrounds with bright, colorful accents.
+          profile_photo: https://robohash.org/<username>
+          """
+        }
+      ]
+    )
+    |> Utils.parse_chat()
+  end
+
+  @doc """
+  Takes profile description from the AI into a map.
+
+  iex> "Username: TechnoTinker\nSummary: 🌌 Tech enthusiast blazing through cyberspace. Embracing the latest innovations while tinkering with code and circuits to create a better future.\nInterests: Artificial intelligence, virtual reality, cybernetics, futuristic architecture, electronic music production.\nVibe: Cyberpunk - Gritty cityscapes, flashy holograms, neon-lit streets, glitchy effects with a touch of retro-futurism."
+  |> decode_profile_desc()
+  %{username: _, summary: _, interests: _, vibe: _}
+
+  """
+  def decode_profile_desc({:ok, content}) do
+    content
+    |> String.split("\n")
+    |> Enum.map(&decode_line(&1))
+    |> Enum.into(%{})
+  end
+
+  defp decode_line(line), do: line |> String.split(": ") |> decode_desc()
+  defp decode_desc(["interests", value]), do: {"interests", Jason.decode!(value)}
+  defp decode_desc([key, value]), do: {key, value}
+
   def get_profile_by_username!(username) do
     Repo.get_by!(Profile, username: username)
   end
