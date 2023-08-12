@@ -101,39 +101,11 @@ defmodule Shinstagram.Timeline do
   Given a profile, generate a post.
   """
   def gen_post(profile) do
-    {:ok, post} = create_post(profile)
-
-    Logs.create_log("Generating post for #{profile.username}", %{
-      profile_id: profile.id,
-      post_id: post.id
-    })
-
     with {:ok, image_prompt} <- gen_image_prompt(profile),
-         {:ok, _log} <-
-           Logs.create_log("Generated image prompt: #{image_prompt}", %{
-             profile_id: profile.id,
-             post_id: post.id
-           }),
          {:ok, caption} <- gen_caption(profile, image_prompt),
-         {:ok, _log} <-
-           Logs.create_log("Generated caption: #{caption}", %{
-             profile_id: profile.id,
-             post_id: post.id
-           }),
          {:ok, location} <- gen_location(image_prompt),
-         {:ok, _log} <-
-           Logs.create_log("Generated location: #{location}", %{
-             profile_id: profile.id,
-             post_id: post.id
-           }),
-         {:ok, image_url} <- Utils.gen_image(image_prompt),
-         {:ok, _log} <-
-           Logs.create_log("Generated image: #{image_url}", %{
-             profile_id: profile.id,
-             post_id: post.id
-           }) do
-      post
-      |> update_post(%{
+         {:ok, image_url} <- Utils.gen_image(image_prompt) do
+      create_post(profile, %{
         photo: image_url,
         photo_prompt: image_prompt,
         caption: caption,
