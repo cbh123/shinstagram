@@ -7,6 +7,9 @@ defmodule Shinstagram.Profiles do
   alias Shinstagram.Repo
 
   alias Shinstagram.Profiles.Profile
+  alias Shinstagram.Profiles
+  alias Shinstagram.Utils
+  require Logger
 
   @model "gpt-4"
   @dumb_model "gpt-3.5-turbo"
@@ -47,7 +50,7 @@ defmodule Shinstagram.Profiles do
           summary: 🤖 Galactic explorer with an insatiable curiosity. Breaking down the mysteries of the universe, one quantum quirk at a time.
           interests: ["Quantum mechanics", "interstellar travel", "advanced algorithms", "vintage sci-fi novels", "chess"]
           vibe: Futuristic - Clean lines, neon glows, dark backgrounds with bright, colorful accents.
-          profile_photo: https://robohash.org/<username>
+          profile_photo: https://robohash.org/quantumquirkster
           """
         }
       ]
