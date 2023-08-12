@@ -18,6 +18,6 @@ defmodule Shinstagram.Timeline.Post do
   def changeset(post, attrs) do
     post
     |> cast(attrs, [:photo, :caption, :photo_prompt, :location])
-    |> validate_required([:photo, :caption, :photo_prompt])
+    |> validate_required([])
   end
 end

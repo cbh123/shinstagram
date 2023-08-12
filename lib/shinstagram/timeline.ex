@@ -10,6 +10,7 @@ defmodule Shinstagram.Timeline do
   alias Shinstagram.Profiles
   alias Shinstagram.Profiles.Profile
   alias Shinstagram.Timeline.{Post, Like}
+  alias Shinstagram.Logs
   require Logger
 
   @model "gpt-4"
@@ -24,9 +25,7 @@ defmodule Shinstagram.Timeline do
       iex> create_image_prompt(profile)
       "A futuristic digital artwork with clean lines, neon glows, and dark background featuring bright, colorful accents."
   """
-  def gen_image_prompt(%Profile{username: username, summary: summary, vibe: vibe}) do
-    Logger.info("Generating image prompt for #{username}")
-
+  def gen_image_prompt(%Profile{username: username, summary: summary, vibe: vibe, id: id}) do
     OpenAI.chat_completion(
       model: @model,
       messages: [
@@ -50,9 +49,10 @@ defmodule Shinstagram.Timeline do
   @doc """
   Generates the caption for the image.
   """
-  def gen_caption(%Profile{username: username, summary: summary, vibe: vibe}, image_prompt) do
-    Logger.info("Generating image caption for #{username}'s post about #{image_prompt}")
-
+  def gen_caption(
+        %Profile{username: username, summary: summary, vibe: vibe, id: id},
+        image_prompt
+      ) do
     OpenAI.chat_completion(
       model: @model,
       messages: [
@@ -73,8 +73,6 @@ defmodule Shinstagram.Timeline do
   end
 
   def gen_location(image_prompt) do
-    Logger.info("Generating location for #{image_prompt}")
-
     OpenAI.chat_completion(
       model: @model,
       messages: [
@@ -103,13 +101,39 @@ defmodule Shinstagram.Timeline do
   Given a profile, generate a post.
   """
   def gen_post(profile) do
-    Logger.info("Generating post for #{profile.username}")
+    {:ok, post} = create_post(profile)
+
+    Logs.create_log("Generating post for #{profile.username}", %{
+      profile_id: profile.id,
+      post_id: post.id
+    })
 
     with {:ok, image_prompt} <- gen_image_prompt(profile),
+         {:ok, _log} <-
+           Logs.create_log("Generated image prompt: #{image_prompt}", %{
+             profile_id: profile.id,
+             post_id: post.id
+           }),
          {:ok, caption} <- gen_caption(profile, image_prompt),
+         {:ok, _log} <-
+           Logs.create_log("Generated caption: #{caption}", %{
+             profile_id: profile.id,
+             post_id: post.id
+           }),
          {:ok, location} <- gen_location(image_prompt),
-         {:ok, image_url} <- Utils.gen_image(image_prompt) do
-      create_post(profile, %{
+         {:ok, _log} <-
+           Logs.create_log("Generated location: #{location}", %{
+             profile_id: profile.id,
+             post_id: post.id
+           }),
+         {:ok, image_url} <- Utils.gen_image(image_prompt),
+         {:ok, _log} <-
+           Logs.create_log("Generated image: #{image_url}", %{
+             profile_id: profile.id,
+             post_id: post.id
+           }) do
+      post
+      |> update_post(%{
         photo: image_url,
         photo_prompt: image_prompt,
         caption: caption,

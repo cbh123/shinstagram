@@ -30,7 +30,7 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
         </button>
 
         <%!-- Caption --%>
-        <p class="text-base mt-2">
+        <p :if={not is_nil(@post.caption)} class="text-base mt-2">
           <.link class="font-bold" navigate={~p"/#{@profile.username}"}>
             <%= @profile.username %>
           </.link>
