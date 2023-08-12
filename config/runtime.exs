@@ -28,6 +28,15 @@ config :openai,
 config :replicate,
   replicate_api_token: System.fetch_env!("REPLICATE_API_TOKEN")
 
+config :ex_aws,
+  access_key_id: System.get_env("CLOUDFLARE_ACCESS_KEY_ID"),
+  secret_access_key: System.get_env("CLOUDFLARE_SECRET_ACCESS_KEY"),
+  s3: [
+    scheme: "https://",
+    host: "f8cf3fdd7d34cbe87d92a631b818efa1.r2.cloudflarestorage.com",
+    region: "us-east-1"
+  ]
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
