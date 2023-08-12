@@ -24,7 +24,7 @@ defmodule ShinstagramWeb.ProfileLive.FormComponent do
         <.input field={@form[:username]} type="text" label="Username" />
         <.input field={@form[:summary]} type="textarea" label="Summary" />
         <.input field={@form[:vibe]} type="textarea" label="Vibe" />
-        <.input field={@form[:interests]} type="textarea" label="Vibe" />
+        <.input field={@form[:interests]} type="textarea" label="Interests" />
         <:actions>
           <.button phx-disable-with="Saving...">Save Profile</.button>
         </:actions>

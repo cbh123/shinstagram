@@ -20,6 +20,14 @@ if System.get_env("PHX_SERVER") do
   config :shinstagram, ShinstagramWeb.Endpoint, server: true
 end
 
+config :openai,
+  api_key: System.fetch_env!("OPENAI_API_KEY"),
+  organization_key: System.fetch_env!("OPENAI_ORG"),
+  http_options: [recv_timeout: 60_000, timeout: 60_000]
+
+config :replicate,
+  replicate_api_token: System.fetch_env!("REPLICATE_API_TOKEN")
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

@@ -15,7 +15,12 @@ defmodule ShinstagramWeb.ProfileLive.Show do
      |> stream(:posts, Timeline.list_posts_by_profile(profile))}
   end
 
-  def handle_params(params, _url, socket) do
+  def handle_params(_params, _url, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("gen-post", _, socket) do
+    {:ok, post} = Timeline.gen_post(socket.assigns.profile)
     {:noreply, socket}
   end
 end

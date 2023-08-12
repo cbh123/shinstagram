@@ -1,16 +1,29 @@
-<.link patch={~p"/posts/new"}>
-  <.button>New Post</.button>
-</.link>
+<.panel>
+  <:header>Control Panel</:header>
+  <div>
+    <.link patch={~p"/posts/new"}>
+      <.button>New Post</.button>
+    </.link>
+    <.button phx-click="gen-profile">New Profile</.button>
+  </div>
+</.panel>
 
-<div id="posts" phx-update="stream" class="space-y-4 max-w-xl">
+<div id="posts" phx-update="stream" class="space-y-4 mt-6 max-w-xl">
   <div :for={{id, post} <- @streams.posts} id={id}>
     <img class="h-96 w-96" src={post.photo} alt={post.photo_prompt} loading="lazy" />
 
-    <p class="font-bold"><%= post.caption %></p>
-    <p class="font-bold"><%= post.photo_prompt %></p>
+    <p class="font-bold"><%= post.caption |> String.replace("\"", "") %></p>
+    <p>
+      Posted by
+      <.link
+        class="font-bold"
+        navigate={~p"/#{Shinstagram.Profiles.get_profile!(post.profile_id).username}"}
+      >
+        <%= Shinstagram.Profiles.get_profile!(post.profile_id).username %>
+      </.link>
+    </p>
 
     <p>
-      Liked by
       <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(post.id) do %>
         <.link
           class="hover:underline"
@@ -24,7 +37,6 @@
     <div>
       <button phx-click="like" phx-value-post_id={post.id}>Like</button>
 
-      <.link patch={~p"/posts/#{post}/edit"}>Edit</.link>
       <.link
         phx-click={JS.push("delete", value: %{id: post.id}) |> hide("##{id}")}
         data-confirm="Are you sure?"

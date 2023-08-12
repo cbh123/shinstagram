@@ -9,7 +9,7 @@ defmodule ShinstagramWeb.PostLive.FormComponent do
     <div>
       <.header>
         <%= @title %>
-        <:subtitle>Use this form to manage post records in your database.</:subtitle>
+        <:subtitle>Choose the profile that's posting the photo.</:subtitle>
       </.header>
 
       <.simple_form
@@ -25,10 +25,8 @@ defmodule ShinstagramWeb.PostLive.FormComponent do
           options={Shinstagram.Profiles.list_profiles() |> Enum.map(fn p -> p.username end)}
           label="Username"
         />
-        <.input field={@form[:photo]} type="text" label="Photo" />
-        <.input field={@form[:caption]} type="text" label="Caption" />
         <:actions>
-          <.button phx-disable-with="Saving...">Save Post</.button>
+          <.button phx-disable-with="Generating...">Generate Post</.button>
         </:actions>
       </.simple_form>
     </div>
@@ -59,25 +57,10 @@ defmodule ShinstagramWeb.PostLive.FormComponent do
     save_post(socket, socket.assigns.action, post_params)
   end
 
-  defp save_post(socket, :edit, post_params) do
-    case Timeline.update_post(socket.assigns.post, post_params) do
-      {:ok, post} ->
-        notify_parent({:saved, post})
-
-        {:noreply,
-         socket
-         |> put_flash(:info, "Post updated successfully")
-         |> push_patch(to: socket.assigns.patch)}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_form(socket, changeset)}
-    end
-  end
-
   defp save_post(socket, :new, post_params) do
     profile = Shinstagram.Profiles.get_profile_by_username!(post_params["username"])
 
-    case Timeline.create_post(profile, post_params) do
+    case Timeline.gen_post(profile) do
       {:ok, post} ->
         notify_parent({:saved, post})
 

@@ -8,8 +8,13 @@
   </div>
   <div>
     <h4 class="text-lg font-bold"><%= @profile.name %></h4>
+    <p><%= @profile.summary %></p>
+    <p class="font-bold">Vibe</p>
+    <p><%= @profile.vibe %></p>
   </div>
 </div>
+
+<.button phx-click="gen-post">Generate Post</.button>
 
 <.link patch={~p"/profiles/#{@profile.username}/show/edit"} phx-click={JS.push_focus()}>
   <.button>Edit profile</.button>
@@ -24,7 +29,6 @@
     <p class="font-bold"><%= post.caption %></p>
 
     <p>
-      Liked by
       <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(post.id) do %>
         <.link
           class="hover:underline"

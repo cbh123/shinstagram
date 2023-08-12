@@ -18,22 +18,17 @@ defmodule ShinstagramWeb.PostLive.Index do
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
-  defp apply_action(socket, :edit, %{"id" => id}) do
-    socket
-    |> assign(:page_title, "Edit Post")
-    |> assign(:post, Timeline.get_post!(id))
-  end
-
-  defp apply_action(socket, :new, _params) do
-    socket
-    |> assign(:page_title, "New Post")
-    |> assign(:post, %Post{})
-  end
-
   defp apply_action(socket, :index, _params) do
     socket
     |> assign(:page_title, "Listing Timeline")
     |> assign(:post, nil)
+  end
+
+  def handle_event("gen-profile", _, socket) do
+    {:ok, profile} = Timeline.gen_profile()
+
+    {:noreply,
+     socket |> redirect(to: ~p"/#{profile.username}") |> put_flash(:info, "New profile created")}
   end
 
   def handle_info({:like, username, post_id}, socket) do
@@ -58,7 +53,7 @@ defmodule ShinstagramWeb.PostLive.Index do
   end
 
   def handle_event("like", %{"post_id" => id}, socket) do
-    send(self(), {:like, "elon", id})
+    # send(self(), {:like, "elon", id})
     {:noreply, socket}
   end
 

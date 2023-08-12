@@ -38,8 +38,8 @@ defmodule ShinstagramWeb.ProfileLive.Index do
   end
 
   @impl true
-  def handle_event("delete", %{"username" => username}, socket) do
-    profile = Profiles.get_profile_by_username!(username)
+  def handle_event("delete", %{"id" => id}, socket) do
+    profile = Profiles.get_profile!(id)
     {:ok, _} = Profiles.delete_profile(profile)
 
     {:noreply, stream_delete(socket, :profiles, profile)}
