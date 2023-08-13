@@ -13,7 +13,7 @@ defmodule ShinstagramWeb.PostLive.Show do
     {:noreply,
      socket
      |> assign(:page_title, page_title(socket.assigns.live_action))
-     |> assign(:post, Timeline.get_post!(id))}
+     |> assign(:post, Timeline.get_post!(id) |> Shinstagram.Repo.preload(:profile))}
   end
 
   defp page_title(:show), do: "Show Post"

@@ -24,7 +24,9 @@
 
 <div id="posts" phx-update="stream" class="grid grid-cols-3 gap-2 mt-6">
   <div :for={{id, post} <- @streams.posts} id={id}>
-    <img src={post.photo} alt="" />
+    <.link navigate={~p"/posts/#{post.id}"}>
+      <img src={post.photo} alt="" />
+    </.link>
   </div>
 </div>
 

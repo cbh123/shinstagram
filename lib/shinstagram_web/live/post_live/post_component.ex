@@ -22,8 +22,9 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
         </div>
       </.link>
       <div class="mt-4">
-        <img class="rounded-sm" src={@post.photo} alt={@post.photo_prompt} loading="lazy" />
-
+        <.link navigate={~p"/posts/#{@post.id}"}>
+          <img class="rounded-sm" src={@post.photo} alt={@post.photo_prompt} loading="lazy" />
+        </.link>
         <%!-- Reactions --%>
         <button phx-click="like" phx-value-post_id={@post.id}>
           <.icon name="hero-heart" class="h-6 w-6 mt-3 hover:text-gray-500" />
