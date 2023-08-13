@@ -24,9 +24,9 @@ defmodule Shinstagram.ChatSigil do
   end
 
   def text_to_prompts(text) when is_binary(text) do
-    model = extract_model(text)
+    model = extract_model(text) |> String.trim()
     messages = extract_messages(text)
-    %{model: model, messages: messages}
+    [model: model, messages: messages]
   end
 
   defp extract_model(text) do

@@ -4,6 +4,7 @@ defmodule Shinstagram.Timeline do
   """
 
   import Ecto.Query, warn: false
+  import Shinstagram.ChatSigil
   alias Shinstagram.Repo
   alias Shinstagram.Utils
 
@@ -26,23 +27,12 @@ defmodule Shinstagram.Timeline do
       "A futuristic digital artwork with clean lines, neon glows, and dark background featuring bright, colorful accents."
   """
   def gen_image_prompt(%Profile{username: username, summary: summary, vibe: vibe, id: id}) do
-    OpenAI.chat_completion(
-      model: @model,
-      messages: [
-        %{
-          role: "system",
-          content:
-            "You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing the image they're posting. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output.
-
-            Example outputs:
-            a selfie of Julius Caesar, dramatic lighting, fish eye lens
-            An owl coding late at night, with hoodie, macbook, ultra realistic, photorealistic, very detailed, 8k - variations
-            detailed pixel art scene of tokyo street at night. city at night. 3d pixel art wallpaper. incredible pixel details. flowers. pixel art. lots of flowers in foreground. voxels.
-            "
-        },
-        %{role: "user", content: "Username: #{username} \n Summary: #{summary} \n Vibe: #{vibe}"}
-      ]
-    )
+    ~x"""
+    model: #{@model}
+    system: You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing the image they're posting. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output.
+    user: Username: #{username} Summary: #{summary} Vibe: #{vibe}
+    """
+    |> OpenAI.chat_completion()
     |> Utils.parse_chat()
   end
 
