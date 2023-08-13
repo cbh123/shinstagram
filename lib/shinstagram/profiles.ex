@@ -5,6 +5,7 @@ defmodule Shinstagram.Profiles do
 
   import Ecto.Query, warn: false
   alias Shinstagram.Repo
+  import Shinstagram.ChatSigil
 
   alias Shinstagram.Profiles.Profile
   alias Shinstagram.Profiles
