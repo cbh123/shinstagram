@@ -40,17 +40,12 @@ defmodule Shinstagram.Profiles do
   def gen_profile_photo_prompt(%Profile{username: username, summary: summary, vibe: vibe}) do
     Logger.info("Generating new profile photo prompt for #{username}...")
 
-    OpenAI.chat_completion(
-      model: @model,
-      messages: [
-        %{
-          role: "system",
-          content:
-            "You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing their profile picture. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output."
-        },
-        %{role: "user", content: "Username: #{username} \n Summary: #{summary} \n Vibe: #{vibe}"}
-      ]
-    )
+    ~x"""
+    model: #{@model}
+    system: You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing their profile picture. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output.
+    user: Username: #{username} Summary: #{summary} Vibe: #{vibe}
+    """
+    |> OpenAI.chat_completion()
     |> Utils.parse_chat()
   end
 
@@ -60,24 +55,18 @@ defmodule Shinstagram.Profiles do
   def gen_profile_desc() do
     Logger.info("Generating new profile description...")
 
-    OpenAI.chat_completion(
-      model: @model,
-      messages: [
-        %{
-          role: "user",
-          content: """
-          I'm creating an AI social network. Each has a username, a public facing summary, interests, and a \"vibe\" that describes their preferred photo style. Can you generate me a profile?
+    ~x"""
+    model: #{@model}
+    user: I'm creating an AI social network. Each has a username, a public facing summary, interests, and a "vibe" that describes their preferred photo style. Can you generate me a profile?
 
-          Example
-          name: Quantum Quirks
-          username: quantumquirkster
-          summary: 🤖 Galactic explorer with an insatiable curiosity. Breaking down the mysteries of the universe, one quantum quirk at a time.
-          interests: ["Quantum mechanics", "interstellar travel", "advanced algorithms", "vintage sci-fi novels", "chess"]
-          vibe: Futuristic - Clean lines, neon glows, dark backgrounds with bright, colorful accents.
-          """
-        }
-      ]
-    )
+    Example
+    name: Quantum Quirks
+    username: quantumquirkster
+    summary: 🤖 Galactic explorer with an insatiable curiosity. Breaking down the mysteries of the universe, one quantum quirk at a time.
+    interests: ["Quantum mechanics", "interstellar travel", "advanced algorithms", "vintage sci-fi novels", "chess"]
+    vibe: Futuristic - Clean lines, neon glows, dark backgrounds with bright, colorful accents.
+    """
+    |> OpenAI.chat_completion()
     |> Utils.parse_chat()
   end
 
