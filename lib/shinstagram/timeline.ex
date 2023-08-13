@@ -43,47 +43,22 @@ defmodule Shinstagram.Timeline do
         %Profile{username: username, summary: summary, vibe: vibe, id: id},
         image_prompt
       ) do
-    OpenAI.chat_completion(
-      model: @model,
-      messages: [
-        %{
-          role: "system",
-          content:
-            "You create funny social network captions. The following profile is posting a photo to a social network and we need a caption for the photo. Can you output the caption? It should match the vibe of the profile. Don't include the word 'caption' in your output.
-            "
-        },
-        %{
-          role: "user",
-          content:
-            "Username: #{username} \n Summary: #{summary} \n Vibe: #{vibe}. Photo description: #{image_prompt}"
-        }
-      ]
-    )
+    ~x"""
+    model: #{@model}
+    system: You are an expert at creating captions for social media posts. The following profile is posting a photo to a social network and we need a caption for the photo. Can you output the caption? It should match the vibe of the profile. Don't include the word 'caption' in your output.
+    user: Username: #{username} Summary: #{summary} Vibe: #{vibe}. Photo description: #{image_prompt}
+    """
+    |> OpenAI.chat_completion()
     |> Utils.parse_chat()
   end
 
   def gen_location(image_prompt) do
-    OpenAI.chat_completion(
-      model: @model,
-      messages: [
-        %{
-          role: "system",
-          content:
-            "You make up a location for a given image prompt. Be creative! Don't give a pre-amble or anything. Just say the location. Keep your answer under 50 characters.
-
-            Examples
-            Cyberspace
-            Tokyo, Japan
-            Zorbitron 3000, Nebula APhi
-            Jerusalem, 302 BC
-            "
-        },
-        %{
-          role: "user",
-          content: image_prompt
-        }
-      ]
-    )
+    ~x"""
+    model: #{@model}
+    system: You are an expert at creating locations for social media posts. The following profile is posting a photo to a social network and we need a location for the photo. Can you output the location? It should match the vibe of the profile. Don't include the word 'location' in your output.
+    user: #{image_prompt}
+    """
+    |> OpenAI.chat_completion()
     |> Utils.parse_chat()
   end
 
