@@ -11,11 +11,39 @@ defmodule Shinstagram.Timeline do
   alias Shinstagram.Profiles
   alias Shinstagram.Profiles.Profile
   alias Shinstagram.Timeline.{Post, Like}
-  alias Shinstagram.Logs
   require Logger
 
   @model "gpt-4"
   @dumb_model "gpt-3.5-turbo"
+
+  @doc """
+  Given a profile and a post, generate a comment.
+  """
+  def gen_comment(%Profile{username: username, summary: summary, vibe: vibe}, %Post{} = post) do
+    Logger.info("Generating comment for #{username} on post #{post.id}")
+
+    ~x"""
+    model: #{@model}
+    system: You are a user on a photo sharing social network site (like instagram).
+    Here's some information about you:
+    - Your username is #{username}.
+    - Your profile summary is #{summary}.
+    - Your vibe is #{vibe}.
+
+    In this moment, you are commenting on a post.
+    - The photo in the post is of #{post.photo_prompt}.
+    - The post is captioned '#{post.caption}'
+    - It was taken in #{post.location}.
+    - The post was made by #{post.profile.username}.
+
+    You are commenting on the post. Comments are generally pretty short (maybe one sentence, or a few words, no hashtags).
+
+    Your comment is:
+    """
+    |> IO.inspect(label: "Comment prompt")
+    |> OpenAI.chat_completion()
+    |> Utils.parse_chat()
+  end
 
   @doc """
   Gathers all the relevant info from a profile and generates a text-to-image prompt,
@@ -26,7 +54,7 @@ defmodule Shinstagram.Timeline do
       iex> create_image_prompt(profile)
       "A futuristic digital artwork with clean lines, neon glows, and dark background featuring bright, colorful accents."
   """
-  def gen_image_prompt(%Profile{username: username, summary: summary, vibe: vibe, id: id}) do
+  def gen_image_prompt(%Profile{username: username, summary: summary, vibe: vibe}) do
     ~x"""
     model: #{@model}
     system: You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing the image they're posting. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output.
@@ -40,7 +68,7 @@ defmodule Shinstagram.Timeline do
   Generates the caption for the image.
   """
   def gen_caption(
-        %Profile{username: username, summary: summary, vibe: vibe, id: id},
+        %Profile{username: username, summary: summary, vibe: vibe},
         image_prompt
       ) do
     ~x"""
@@ -95,6 +123,7 @@ defmodule Shinstagram.Timeline do
     from(p in Post, order_by: [desc: p.inserted_at])
     |> Repo.all()
     |> Repo.preload(:profile)
+    |> Repo.preload(:comments)
   end
 
   def list_posts_by_profile(profile) do
@@ -119,7 +148,7 @@ defmodule Shinstagram.Timeline do
       ** (Ecto.NoResultsError)
 
   """
-  def get_post!(id), do: Repo.get!(Post, id)
+  def get_post!(id), do: Repo.get!(Post, id) |> Repo.preload([:profile, :likes, :comments])
 
   @doc """
   Creates a post.
@@ -314,8 +343,8 @@ defmodule Shinstagram.Timeline do
       [%Comment{}, ...]
 
   """
-  def list_comments do
-    Repo.all(Comment)
+  def list_comments(%Post{id: id}) do
+    from(c in Comment, where: c.post_id == ^id) |> Repo.all()
   end
 
   @doc """
@@ -352,7 +381,6 @@ defmodule Shinstagram.Timeline do
     |> Ecto.Changeset.put_assoc(:profile, profile)
     |> Ecto.Changeset.put_assoc(:post, post)
     |> Repo.insert()
-    |> broadcast(:post_updated)
   end
 
   @doc """

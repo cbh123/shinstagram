@@ -9,6 +9,7 @@ defmodule Shinstagram.Timeline.Post do
     field(:photo, :string)
     belongs_to(:profile, Shinstagram.Profiles.Profile)
     has_many(:likes, Shinstagram.Timeline.Like)
+    has_many(:comments, Shinstagram.Timeline.Comment)
     field(:photo_prompt, :string)
     field :location, :string
     timestamps()

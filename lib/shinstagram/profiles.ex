@@ -15,6 +15,10 @@ defmodule Shinstagram.Profiles do
   @model "gpt-4"
   @dumb_model "gpt-3.5-turbo"
 
+  def get_random_profile() do
+    from(p in Profile, order_by: fragment("RANDOM()"), limit: 1) |> Repo.one()
+  end
+
   @doc """
   Generates a profile with AI.
   """

@@ -17,10 +17,10 @@ defmodule Shinstagram.Application do
       # Start Finch
       {Finch, name: Shinstagram.Finch},
       # Start the Endpoint (http/https)
-      ShinstagramWeb.Endpoint
+      ShinstagramWeb.Endpoint,
       # Shinstagram.Agents.Poster,
       # Shinstagram.Agents.Liker,
-      # Shinstagram.Agents.Manager
+      Shinstagram.Agents.Manager
       # Start a worker by calling: Shinstagram.Worker.start_link(arg)
       # {Shinstagram.Worker, arg}
     ]

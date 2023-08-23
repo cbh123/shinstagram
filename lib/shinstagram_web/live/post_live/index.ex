@@ -4,14 +4,21 @@ defmodule ShinstagramWeb.PostLive.Index do
   alias Shinstagram.Profiles
   alias Shinstagram.Timeline
   alias Shinstagram.Timeline.Post
+  alias Shinstagram.Repo
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Timeline.subscribe()
+      Phoenix.PubSub.subscribe(Shinstagram.PubSub, "manager")
     end
 
     {:ok, stream(socket, :posts, Timeline.list_posts())}
+  end
+
+  def handle_info(message, socket) do
+    IO.inspect(message, label: "")
+    {:noreply, socket}
   end
 
   @impl true
@@ -29,6 +36,19 @@ defmodule ShinstagramWeb.PostLive.Index do
     socket
     |> assign(:page_title, "New Post")
     |> assign(:post, %Post{})
+  end
+
+  def handle_event("comment", %{"post-id" => post_id}, socket) do
+    post = Timeline.get_post!(post_id)
+
+    Profiles.get_random_profile()
+    |> Timeline.create_comment(post, %{body: "This is a comment"})
+
+    post =
+      Timeline.get_post!(post_id)
+      |> Repo.preload([:profile, :likes, :comments])
+
+    {:noreply, socket |> stream_insert(:posts, post)}
   end
 
   def handle_event("gen-profile", _, socket) do

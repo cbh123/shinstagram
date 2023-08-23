@@ -4,7 +4,7 @@ defmodule Shinstagram.Agents.Manager do
   """
   use GenServer
   alias Shinstagram.Timeline
-  alias ShinstagramWeb.Endpoint
+  alias Phoenix.PubSub
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{})
@@ -16,7 +16,8 @@ defmodule Shinstagram.Agents.Manager do
   end
 
   defp manage() do
-    # Process.send_after(self(), :manage, 5000)
+    PubSub.broadcast(Shinstagram.PubSub, "manager", {"status", "running"})
+    Process.send_after(self(), :manager, 3000)
   end
 
   def handle_info(:manager, state) do

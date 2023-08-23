@@ -26,8 +26,11 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
           <img class="rounded-sm" src={@post.photo} alt={@post.photo_prompt} loading="lazy" />
         </.link>
         <%!-- Reactions --%>
-        <button phx-click="like" phx-value-post_id={@post.id}>
+        <button phx-click="like" phx-value-post-id={@post.id}>
           <.icon name="hero-heart" class="h-6 w-6 mt-3 hover:text-gray-500" />
+        </button>
+        <button phx-click="comment" phx-value-post-id={@post.id}>
+          <.icon name="hero-chat-bubble-oval-left" class="h-6 w-6 mt-3 hover:text-gray-500" />
         </button>
 
         <%!-- Caption --%>
@@ -37,6 +40,21 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
           </.link>
           <%= @post.caption |> String.replace("\"", "") %>
         </p>
+
+        <%!-- Comments --%>
+        <ul class="mt-2">
+          <%= for comment <- @post.comments do %>
+            <li class="block">
+              <.link
+                class="hover:underline font-bold"
+                navigate={~p"/#{Shinstagram.Profiles.get_profile!(comment.profile_id).username}"}
+              >
+                <%= Shinstagram.Profiles.get_profile!(comment.profile_id).username %>
+              </.link>
+              <%= comment.body %>
+            </li>
+          <% end %>
+        </ul>
 
         <p>
           <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(@post.id) do %>
