@@ -10,14 +10,22 @@ defmodule ShinstagramWeb.PostLive.Index do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Timeline.subscribe()
-      Phoenix.PubSub.subscribe(Shinstagram.PubSub, "manager")
+      Phoenix.PubSub.subscribe(Shinstagram.PubSub, "feed")
     end
 
-    {:ok, stream(socket, :posts, Timeline.list_posts())}
+    {:ok,
+     socket
+     |> stream(:posts, Timeline.list_posts())
+     |> stream(:logs, [])}
   end
 
-  def handle_info(message, socket) do
-    IO.inspect(message, label: "")
+  def handle_info({"profile_activity", _event, log}, socket) do
+    {:noreply, socket |> stream_insert(:logs, log, at: 0)}
+  end
+
+  def handle_info(:kill, socket) do
+    raise "potato"
+    Shinstagram.ProfileSupervisor.kill_everyone()
     {:noreply, socket}
   end
 
@@ -58,6 +66,19 @@ defmodule ShinstagramWeb.PostLive.Index do
      socket |> redirect(to: ~p"/#{profile.username}") |> put_flash(:info, "New profile created")}
   end
 
+  def handle_event("like", %{"post_id" => id}, socket) do
+    # send(self(), {:like, "elon", id})
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("delete", %{"id" => id}, socket) do
+    post = Timeline.get_post!(id)
+    {:ok, _} = Timeline.delete_post(post)
+
+    {:noreply, stream_delete(socket, :posts, post)}
+  end
+
   def handle_info({:like, username, post_id}, socket) do
     profile = Shinstagram.Profiles.get_profile_by_username!(username)
     post = Shinstagram.Timeline.get_post!(post_id)
@@ -77,18 +98,5 @@ defmodule ShinstagramWeb.PostLive.Index do
   @impl true
   def handle_info({ShinstagramWeb.PostLive.FormComponent, {:saved, post}}, socket) do
     {:noreply, stream_insert(socket, :posts, post)}
-  end
-
-  def handle_event("like", %{"post_id" => id}, socket) do
-    # send(self(), {:like, "elon", id})
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("delete", %{"id" => id}, socket) do
-    post = Timeline.get_post!(id)
-    {:ok, _} = Timeline.delete_post(post)
-
-    {:noreply, stream_delete(socket, :posts, post)}
   end
 end

@@ -17,4 +17,19 @@ defmodule Shinstagram.LogsFixtures do
 
     log
   end
+
+  @doc """
+  Generate a log.
+  """
+  def log_fixture(attrs \\ %{}) do
+    {:ok, log} =
+      attrs
+      |> Enum.into(%{
+        event: "some event",
+        status: "some status"
+      })
+      |> Shinstagram.Logs.create_log()
+
+    log
+  end
 end

@@ -4,17 +4,22 @@ defmodule Shinstagram.Timeline do
   """
 
   import Ecto.Query, warn: false
-  import Shinstagram.ChatSigil
+  import Shinstagram.AI
   alias Shinstagram.Repo
-  alias Shinstagram.Utils
 
-  alias Shinstagram.Profiles
   alias Shinstagram.Profiles.Profile
   alias Shinstagram.Timeline.{Post, Like}
   require Logger
 
   @model "gpt-4"
   @dumb_model "gpt-3.5-turbo"
+
+  def log(message) do
+    Logger.info(message)
+    {:ok, log} = Shinstagram.Logs.create_log(%{event: "profiles", status: message})
+
+    Phoenix.PubSub.broadcast(Shinstagram.PubSub, "profiles", {"profiles", log})
+  end
 
   @doc """
   Given a profile and a post, generate a comment.
@@ -40,14 +45,14 @@ defmodule Shinstagram.Timeline do
 
     Your comment is:
     """
-    |> IO.inspect(label: "Comment prompt")
-    |> OpenAI.chat_completion()
-    |> Utils.parse_chat()
+    |> chat_completion()
   end
 
   @doc """
   Gathers all the relevant info from a profile and generates a text-to-image prompt,
   as well as a caption for the photo.
+
+  Returns {:ok, image_prompt}.
 
   ## Examples
 
@@ -60,24 +65,24 @@ defmodule Shinstagram.Timeline do
     system: You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing the image they're posting. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output.
     user: Username: #{username} Summary: #{summary} Vibe: #{vibe}
     """
-    |> OpenAI.chat_completion()
-    |> Utils.parse_chat()
+    |> chat_completion()
   end
 
   @doc """
   Generates the caption for the image.
+
+  Returns {:ok, caption}
   """
   def gen_caption(
-        %Profile{username: username, summary: summary, vibe: vibe},
-        image_prompt
+        image_prompt,
+        %Profile{username: username, summary: summary, vibe: vibe}
       ) do
     ~x"""
     model: #{@model}
     system: You are an expert at creating captions for social media posts. The following profile is posting a photo to a social network and we need a caption for the photo. Can you output the caption? It should match the vibe of the profile. Don't include the word 'caption' in your output.
     user: Username: #{username} Summary: #{summary} Vibe: #{vibe}. Photo description: #{image_prompt}
     """
-    |> OpenAI.chat_completion()
-    |> Utils.parse_chat()
+    |> chat_completion()
   end
 
   def gen_location(image_prompt) do
@@ -86,18 +91,19 @@ defmodule Shinstagram.Timeline do
     system: You are an expert at creating locations for social media posts. The following profile is posting a photo to a social network and we need a location for the photo. Can you output the location? It should match the vibe of the profile. Don't include the word 'location' in your output.
     user: #{image_prompt}
     """
-    |> OpenAI.chat_completion()
-    |> Utils.parse_chat()
+    |> chat_completion()
   end
+
+  alias Shinstagram.Agents
 
   @doc """
   Given a profile, generate a post.
   """
   def gen_post(profile) do
     with {:ok, image_prompt} <- gen_image_prompt(profile),
-         {:ok, caption} <- gen_caption(profile, image_prompt),
+         {:ok, caption} <- gen_caption(image_prompt, profile),
          {:ok, location} <- gen_location(image_prompt),
-         {:ok, image_url} <- Utils.gen_image(image_prompt) do
+         {:ok, image_url} <- gen_image(image_prompt) do
       create_post(profile, %{
         photo: image_url,
         photo_prompt: image_prompt,
@@ -128,6 +134,17 @@ defmodule Shinstagram.Timeline do
 
   def list_posts_by_profile(profile) do
     Repo.all(from(p in Post, where: p.profile_id == ^profile.id, order_by: [desc: p.inserted_at]))
+  end
+
+  def list_posts_by_profile(profile, limit) do
+    Repo.all(
+      from(p in Post,
+        where: p.profile_id == ^profile.id,
+        order_by: [desc: p.inserted_at],
+        limit: ^limit
+      )
+    )
+    |> Repo.preload([:comments, :profile, :likes])
   end
 
   def list_recent_posts(limit) do
@@ -177,7 +194,12 @@ defmodule Shinstagram.Timeline do
   defp broadcast({:error, _reason} = error, _), do: error
 
   defp broadcast({:ok, post}, event) do
-    Phoenix.PubSub.broadcast(Shinstagram.PubSub, "posts", {event, post})
+    Phoenix.PubSub.broadcast(
+      Shinstagram.PubSub,
+      "posts",
+      {event, post |> Repo.preload(:comments)}
+    )
+
     {:ok, post}
   end
 
@@ -376,11 +398,15 @@ defmodule Shinstagram.Timeline do
 
   """
   def create_comment(%Profile{} = profile, %Post{} = post, attrs \\ %{}) do
-    %Comment{}
-    |> Comment.changeset(attrs)
-    |> Ecto.Changeset.put_assoc(:profile, profile)
-    |> Ecto.Changeset.put_assoc(:post, post)
-    |> Repo.insert()
+    {:ok, comment} =
+      %Comment{}
+      |> Comment.changeset(attrs)
+      |> Ecto.Changeset.put_assoc(:profile, profile)
+      |> Ecto.Changeset.put_assoc(:post, post)
+      |> Repo.insert()
+
+    post = get_post!(post.id)
+    broadcast({:ok, post}, :post_updated)
   end
 
   @doc """

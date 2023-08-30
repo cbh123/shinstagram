@@ -7,7 +7,6 @@ defmodule Shinstagram.Logs do
   alias Shinstagram.Repo
 
   alias Shinstagram.Logs.Log
-  require Logger
 
   @doc """
   Returns the list of logs.
@@ -20,6 +19,10 @@ defmodule Shinstagram.Logs do
   """
   def list_logs do
     Repo.all(Log)
+  end
+
+  def list_logs_by_profile(%Shinstagram.Profiles.Profile{id: id}) do
+    from(l in Log, where: l.profile_id == ^id) |> Repo.all()
   end
 
   @doc """
@@ -50,10 +53,7 @@ defmodule Shinstagram.Logs do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_log(text, attrs \\ %{}) do
-    Logger.info(text)
-    attrs = Map.put(attrs, :text, text)
-
+  def create_log(attrs \\ %{}) do
     %Log{}
     |> Log.changeset(attrs)
     |> Repo.insert()

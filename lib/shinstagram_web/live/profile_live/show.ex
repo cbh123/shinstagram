@@ -3,23 +3,31 @@ defmodule ShinstagramWeb.ProfileLive.Show do
 
   alias Shinstagram.Profiles
   alias Shinstagram.Timeline
+  alias Shinstagram.Logs
+  alias Shinstagram.Logs.Log
 
   @impl true
   def mount(%{"username" => username}, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Shinstagram.PubSub, "feed")
+    end
+
     profile = Profiles.get_profile_by_username!(username)
+    logs = Logs.list_logs_by_profile(profile)
 
     {:ok,
      socket
+     |> assign(profile: profile)
      |> assign(:page_title, "View #{profile.name}'s profile on Shinstagram")
-     |> stream(:posts, Timeline.list_posts_by_profile(profile))}
+     |> stream(:posts, Timeline.list_posts_by_profile(profile))
+     |> stream(:logs, logs)}
   end
 
-  def handle_params(%{"username" => username}, _url, socket) do
-    {:noreply, socket |> assign(:profile, Profiles.get_profile_by_username!(username))}
-  end
-
-  def handle_event("gen-post", _, socket) do
-    {:ok, post} = Timeline.gen_post(socket.assigns.profile)
-    {:noreply, socket}
+  def handle_info({"profile_activity", _event, log}, socket) do
+    if log.profile_id == socket.assigns.profile.id do
+      {:noreply, socket |> stream_insert(:logs, log, at: 0)}
+    else
+      {:noreply, socket}
+    end
   end
 end

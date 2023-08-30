@@ -15,11 +15,22 @@
 </div>
 
 <div class="mt-4">
-  <.button phx-click="gen-post">Generate Post</.button>
-
   <.link patch={~p"/profiles/#{@profile.username}/show/edit"} phx-click={JS.push_focus()}>
     <.button>Edit profile</.button>
   </.link>
+</div>
+
+<div class="mt-12">
+<.header>Brain</.header>
+<div
+  id="logs"
+  phx-update="stream"
+  class="h-64 space-y-3 overflow-scroll font-mono max-w-2xl mx-auto"
+>
+  <ul :for={{id, log} <- @streams.logs} id={id} class="list-disc">
+    <li><%= log.event %> : <%= log.message %></li>
+  </ul>
+</div>
 </div>
 
 <div id="posts" phx-update="stream" class="grid grid-cols-3 gap-2 mt-6">

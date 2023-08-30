@@ -26,7 +26,7 @@ defmodule Shinstagram.Utils do
   """
   def gen_image(image_prompt) when is_binary(image_prompt) do
     Logger.info("Generating image for #{image_prompt}")
-    model = Replicate.Models.get!("stability-ai/sdxl")
+    model = Replicate.Models.get!("stability-ai/stable-diffusion")
     version = Replicate.Models.get_latest_version!(model)
 
     {:ok, prediction} = Replicate.Predictions.create(version, %{prompt: image_prompt})
@@ -37,5 +37,11 @@ defmodule Shinstagram.Utils do
     result = List.first(prediction.output)
 
     save_r2(prediction.id, result)
+  end
+
+  def chat_completion(text) do
+    text
+    |> OpenAI.chat_completion()
+    |> Utils.parse_chat()
   end
 end

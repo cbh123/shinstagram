@@ -5,9 +5,9 @@ defmodule Shinstagram.Logs.Log do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "logs" do
-    field :text, :string
-    field :profile_id, :binary_id
-    field :post_id, :binary_id
+    field(:event, :string)
+    field(:message, :string)
+    belongs_to(:profile, Shinstagram.Profiles.Profile)
 
     timestamps()
   end
@@ -15,7 +15,7 @@ defmodule Shinstagram.Logs.Log do
   @doc false
   def changeset(log, attrs) do
     log
-    |> cast(attrs, [:text, :profile_id, :post_id])
-    |> validate_required([:text])
+    |> cast(attrs, [:message, :event, :profile_id])
+    |> validate_required([:message, :event])
   end
 end

@@ -18,11 +18,9 @@ defmodule Shinstagram.Application do
       {Finch, name: Shinstagram.Finch},
       # Start the Endpoint (http/https)
       ShinstagramWeb.Endpoint,
-      # Shinstagram.Agents.Poster,
-      # Shinstagram.Agents.Liker,
-      Shinstagram.Agents.Manager
-      # Start a worker by calling: Shinstagram.Worker.start_link(arg)
-      # {Shinstagram.Worker, arg}
+      # Start AI stuff
+      Shinstagram.ProfileSupervisor,
+      {Shinstagram.Agents.Gatherer, 3}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

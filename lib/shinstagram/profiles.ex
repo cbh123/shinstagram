@@ -8,7 +8,6 @@ defmodule Shinstagram.Profiles do
   import Shinstagram.ChatSigil
 
   alias Shinstagram.Profiles.Profile
-  alias Shinstagram.Profiles
   alias Shinstagram.Utils
   require Logger
 

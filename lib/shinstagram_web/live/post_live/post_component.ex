@@ -1,8 +1,6 @@
 defmodule ShinstagramWeb.PostLive.PostComponent do
   use ShinstagramWeb, :live_component
 
-  alias Shinstagram.Timeline
-
   @impl true
   def render(assigns) do
     ~H"""
