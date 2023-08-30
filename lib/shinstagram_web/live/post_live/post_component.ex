@@ -31,6 +31,18 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
           <.icon name="hero-chat-bubble-oval-left" class="h-6 w-6 mt-3 hover:text-gray-500" />
         </button>
 
+        <%!-- Likes --%>
+        <div class="text-xs mt-2">Liked by
+          <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(@post.id) do %>
+            <.link
+              class="font-bold hover:underline"
+              navigate={~p"/#{Shinstagram.Profiles.get_profile!(@post.profile_id).username}"}
+            >
+              <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
+            </.link>
+          <% end %>
+        </div>
+
         <%!-- Caption --%>
         <p :if={not is_nil(@post.caption)} class="text-base mt-2">
           <.link class="font-bold" navigate={~p"/#{@profile.username}"}>
@@ -54,16 +66,7 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
           <% end %>
         </ul>
 
-        <p>
-          <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(@post.id) do %>
-            <.link
-              class="hover:underline"
-              navigate={~p"/#{Shinstagram.Profiles.get_profile!(@post.profile_id).username}"}
-            >
-              <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
-            </.link>
-          <% end %>
-        </p>
+
       </div>
     </div>
     """

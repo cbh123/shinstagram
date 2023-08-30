@@ -148,7 +148,9 @@ defmodule Shinstagram.Timeline do
   end
 
   def list_recent_posts(limit) do
-    Repo.all(Post, order_by: [:desc, :inserted_at], limit: limit)
+    from(p in Post, order_by: [desc: p.inserted_at], limit: ^limit)
+    |> Repo.all()
+    |> Repo.preload([:profile, :likes, :comments])
   end
 
   @doc """

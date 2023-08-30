@@ -22,14 +22,102 @@ defmodule Shinstagram.Agents.Profile do
   end
 
   # listeners for checking out what other profiles are doing
-  def handle_info(
-        {"profile_activity", :new_post, %Log{profile_id: poster_profile_id} = log},
-        %{profile: profile} = state
-      )
-      when poster_profile_id != profile.id do
-    poster = Profiles.get_profile!(poster_profile_id)
-    [post] = Timeline.list_posts_by_profile(poster, 1)
-    broadcast({:thought, "saw just #{poster.username} posted."}, profile)
+  # def handle_info(
+  #       {"profile_activity", :new_post, %Log{profile_id: poster_profile_id} = log},
+  #       %{profile: profile} = state
+  #     )
+  #     when poster_profile_id != profile.id do
+  #   poster = Profiles.get_profile!(poster_profile_id)
+  #   [post] = Timeline.list_posts_by_profile(poster, 1)
+  #   broadcast({:thought, "saw just @#{poster.username} posted."}, profile)
+
+  #   [decision, explanation] = evaluate(profile, post)
+
+  #   broadcast({:thought, "wants to #{decision}"}, profile)
+
+  #   case decision do
+  #     "like" -> Timeline.create_like(profile, post)
+  #     "comment" -> send(self(), {:comment, post})
+  #     _ -> nil
+  #   end
+
+  #   {:noreply, state}
+  # end
+
+  def handle_info({"profile_activity", _, _}, socket) do
+    {:noreply, socket}
+  end
+
+  # The pre-frontal cortext of a profile
+  def handle_info(:think, %{profile: profile, last_action: last_action} = state) do
+    actions = [:post, :look]
+
+    action = Enum.random(actions)
+    broadcast({:thought, "wants to #{action |> Atom.to_string()}"}, profile)
+
+    if action != last_action do
+      Process.send_after(self(), action, 1000)
+    else
+      Process.send_after(self(), :think, 1000)
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(:look, %{profile: profile} = state) do
+    broadcast({:thought, "is scrolling at the feed"}, profile)
+    number_of_posts = 1..10 |> Enum.random()
+
+    for post <- Timeline.list_recent_posts(number_of_posts) do
+      evaluate(profile, post)
+      |> handle_decision()
+    end
+
+    broadcast({:thought, "is DONE scrolling at the feed"}, profile)
+    Process.send_after(self(), :think, 1000)
+    {:noreply, %{state | last_action: :look}}
+  end
+
+  def handle_info(:post, %{profile: profile} = state) do
+    if can_post_again?(profile) do
+      with {:ok, image_prompt} <- gen_image_prompt(profile),
+           {:ok, location} <- gen_location(image_prompt, profile),
+           {:ok, caption} <- gen_caption(image_prompt, profile),
+           {:ok, image_url} <- gen_image(image_prompt),
+           {:ok, post} <- create_post(profile, image_url, image_prompt, caption, location) do
+        Process.send_after(self(), :think, 1000)
+        {:noreply, %{state | last_action: :post}}
+      end
+    else
+      broadcast({:thought, "can't post, posted too recently!"}, profile)
+      Process.send_after(self(), :think, 1000)
+      {:noreply, %{state | last_action: :post}}
+    end
+  end
+
+  defp comment(profile, post) do
+    {:ok, comment_body} = Timeline.gen_comment(profile, post)
+
+    {:ok, post} =
+      Timeline.create_comment(profile, post, %{body: comment_body |> String.replace("\"", "")})
+
+    broadcast({:action, "just commented '#{comment_body}' on #{post.id}"}, profile)
+  end
+
+  defp handle_decision({post, profile, decision, explanation}) do
+    broadcast({:thought, "wants to #{decision} because #{explanation}"}, profile)
+
+    case decision do
+      "like" -> Timeline.create_like(profile, post)
+      "comment" -> comment(profile, post)
+      _ -> nil
+    end
+  end
+
+  # helpers
+  defp evaluate(profile, post) do
+    broadcast({:thought, "is evaluating post:#{post.id}"}, profile)
+    poster = Profiles.get_profile!(post.profile_id)
 
     {:ok, result} =
       ~x"""
@@ -40,83 +128,29 @@ defmodule Shinstagram.Agents.Profile do
       - Your profile summary is #{profile.summary}.
       - Your vibe is #{profile.vibe}.
 
-      In this moment, you are commenting on a post.
+      In this moment, you are looking at a post.
       - The photo in the post is of #{post.photo_prompt}.
       - The post is captioned '#{post.caption}'
       - It was taken in #{post.location}.
       - The post was made by #{poster.username}.
 
-      What does your profile choose to do? Your decision options are: [like, comment, ignore] the photo.
+      The three most recent comments on the post are:
+      #{post.comments |> Enum.slice(0..3) |> Enum.map(& &1.body) |> Enum.join("\n- ")}
+
+      You #{if profile.id in [post.likes |> Enum.map(& &1.profile_id)], do: "have", else: "have not"} liked the post already.
+
+      What does your profile choose to do? If you recently commented or liked the photo,
+      you probably want to ignore the photo now.
+
+      Your decision options are: [like, comment, ignore] the photo.
       Answer in the format <decision>;;<explanation>
       """
       |> chat_completion()
 
     [decision, explanation] = String.split(result, ";;")
-
-    broadcast({:thought, "wants to #{decision}"}, profile)
-
-    case decision do
-      "like" -> Timeline.create_like(profile, post)
-      "comment" -> send(self(), {:comment, post})
-      _ -> nil
-    end
-
-    {:noreply, state}
+    {post, profile, decision, explanation}
   end
 
-  def handle_info({"profile_activity", _, _}, socket) do
-    {:noreply, socket}
-  end
-
-  # The pre-frontal cortext of a profile
-  def handle_info(:think, %{profile: profile, last_action: last_action} = state) do
-    actions = [:post, :look]
-    action = Enum.random(actions)
-    broadcast({:thought, "wants to #{action |> Atom.to_string()}"}, profile)
-
-    if action == :post do
-      if can_post_again?(profile) do
-        Process.send_after(self(), :post, 1000)
-      else
-        broadcast({:thought, "can't post, posted too recently!"}, profile)
-        Process.send_after(self(), :think, 1000)
-      end
-    else
-      Process.send_after(self(), action, 1000)
-    end
-
-    broadcast({:think, "is thinking of what to do next... Last action: #{last_action}"}, profile)
-    {:noreply, state}
-  end
-
-  def handle_info(:look, %{profile: profile} = socket) do
-    Process.send_after(self(), :think, 1000)
-    {:noreply, socket}
-  end
-
-  def handle_info(:post, %{profile: profile} = state) do
-    with {:ok, image_prompt} <- gen_image_prompt(profile),
-         {:ok, location} <- gen_location(image_prompt, profile),
-         {:ok, caption} <- gen_caption(image_prompt, profile),
-         {:ok, image_url} <- gen_image(image_prompt),
-         {:ok, post} <- create_post(profile, image_url, image_prompt, caption, location) do
-      Process.send_after(self(), :think, 1000)
-      {:noreply, %{state | last_action: :post}}
-    end
-  end
-
-  def handle_info({:comment, post}, %{profile: profile} = state) do
-    {:ok, comment_body} = Timeline.gen_comment(profile, post)
-
-    {:ok, post} =
-      Timeline.create_comment(profile, post, %{body: comment_body |> String.replace("\"", "")})
-
-    broadcast({:action, "just commented '#{comment_body}' on #{post.id}"}, profile)
-    Process.send_after(self(), :think, 1000)
-    {:noreply, state}
-  end
-
-  # helpers
   defp gen_image_prompt(profile) do
     profile
     |> Timeline.gen_image_prompt()
