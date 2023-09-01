@@ -12,7 +12,6 @@ defmodule Shinstagram.ProfileSupervisor do
   end
 
   def init(:no_args) do
-    IO.puts("!! STARTING UP !!")
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 

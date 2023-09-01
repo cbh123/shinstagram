@@ -42,8 +42,6 @@ defmodule Shinstagram.Profiles do
   Generate profile photo prompt.
   """
   def gen_profile_photo_prompt(%Profile{username: username, summary: summary, vibe: vibe}) do
-    Logger.info("Generating new profile photo prompt for #{username}...")
-
     ~x"""
     model: #{@model}
     system: You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing their profile picture. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output.
@@ -57,8 +55,6 @@ defmodule Shinstagram.Profiles do
   Generates a profile description.
   """
   def gen_profile_desc() do
-    Logger.info("Generating new profile description...")
-
     ~x"""
     model: #{@model}
     user: I'm creating an AI social network. Each has a username, a public facing summary, interests, and a "vibe" that describes their preferred photo style. Can you generate me a profile?

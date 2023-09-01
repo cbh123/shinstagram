@@ -16,11 +16,13 @@ defmodule Shinstagram.Agents.Gatherer do
   # server
 
   def init(profile_count) do
-    Process.send_after(self(), :kickoff, 0)
+    Phoenix.PubSub.subscribe(Shinstagram.PubSub, "wake-up-alarm")
     {:ok, profile_count}
   end
 
   def handle_info(:kickoff, profile_count) do
+    IO.inspect("woken up", label: "")
+
     1..profile_count
     |> Enum.each(fn _ -> Shinstagram.ProfileSupervisor.add_profile() end)
 

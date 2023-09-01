@@ -63,7 +63,7 @@ defmodule Shinstagram.AI do
     {:ok, content}
   end
 
-  def save_r2(uuid, image_url) do
+  def save_r2(image_url, uuid) do
     {:ok, resp} = :httpc.request(:get, {image_url, []}, [], body_format: :binary)
     {{_, 200, 'OK'}, _headers, image_binary} = resp
 
@@ -89,11 +89,9 @@ defmodule Shinstagram.AI do
     {:ok, prediction} = Replicate.Predictions.create(version, %{prompt: image_prompt})
     {:ok, prediction} = Replicate.Predictions.wait(prediction)
 
-    Logger.info("Image generated: #{prediction.output}")
-
-    result = List.first(prediction.output)
-
-    save_r2(prediction.id, result)
+    prediction.output
+    |> List.first()
+    |> save_r2(prediction.id)
   end
 
   def chat_completion(text) do

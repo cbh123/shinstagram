@@ -23,12 +23,6 @@ defmodule ShinstagramWeb.PostLive.Index do
     {:noreply, socket |> stream_insert(:logs, log, at: 0)}
   end
 
-  def handle_info(:kill, socket) do
-    raise "potato"
-    Shinstagram.ProfileSupervisor.kill_everyone()
-    {:noreply, socket}
-  end
-
   @impl true
   def handle_params(params, _url, socket) do
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
@@ -44,6 +38,11 @@ defmodule ShinstagramWeb.PostLive.Index do
     socket
     |> assign(:page_title, "New Post")
     |> assign(:post, %Post{})
+  end
+
+  def handle_event("wake-up", _, socket) do
+    Phoenix.PubSub.broadcast(Shinstagram.PubSub, "wake-up-alarm", :kickoff)
+    {:noreply, socket}
   end
 
   def handle_event("comment", %{"post-id" => post_id}, socket) do

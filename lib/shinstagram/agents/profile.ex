@@ -9,6 +9,7 @@ defmodule Shinstagram.Agents.Profile do
   import Logger
 
   @channel "feed"
+  @cycle_time 1000
 
   def start_link(profile) do
     GenServer.start_link(__MODULE__, %{profile: profile, last_action: nil})
@@ -16,36 +17,10 @@ defmodule Shinstagram.Agents.Profile do
 
   def init(state) do
     Phoenix.PubSub.subscribe(Shinstagram.PubSub, "feed")
+    broadcast({:thought, "🛌 is waking up!"}, state.profile)
 
-    Process.send_after(self(), :think, 0)
+    Process.send_after(self(), :think, @cycle_time * 3)
     {:ok, state}
-  end
-
-  # listeners for checking out what other profiles are doing
-  # def handle_info(
-  #       {"profile_activity", :new_post, %Log{profile_id: poster_profile_id} = log},
-  #       %{profile: profile} = state
-  #     )
-  #     when poster_profile_id != profile.id do
-  #   poster = Profiles.get_profile!(poster_profile_id)
-  #   [post] = Timeline.list_posts_by_profile(poster, 1)
-  #   broadcast({:thought, "saw just @#{poster.username} posted."}, profile)
-
-  #   [decision, explanation] = evaluate(profile, post)
-
-  #   broadcast({:thought, "wants to #{decision}"}, profile)
-
-  #   case decision do
-  #     "like" -> Timeline.create_like(profile, post)
-  #     "comment" -> send(self(), {:comment, post})
-  #     _ -> nil
-  #   end
-
-  #   {:noreply, state}
-  # end
-
-  def handle_info({"profile_activity", _, _}, socket) do
-    {:noreply, socket}
   end
 
   # The pre-frontal cortext of a profile
@@ -56,16 +31,16 @@ defmodule Shinstagram.Agents.Profile do
     broadcast({:thought, "wants to #{action |> Atom.to_string()}"}, profile)
 
     if action != last_action do
-      Process.send_after(self(), action, 1000)
+      Process.send_after(self(), action, @cycle_time)
     else
-      Process.send_after(self(), :think, 1000)
+      Process.send_after(self(), :think, @cycle_time)
     end
 
     {:noreply, state}
   end
 
   def handle_info(:look, %{profile: profile} = state) do
-    broadcast({:thought, "is scrolling at the feed"}, profile)
+    broadcast({:thought, "📜 is scrolling at the feed"}, profile)
     number_of_posts = 1..10 |> Enum.random()
 
     for post <- Timeline.list_recent_posts(number_of_posts) do
@@ -74,7 +49,7 @@ defmodule Shinstagram.Agents.Profile do
     end
 
     broadcast({:thought, "is DONE scrolling at the feed"}, profile)
-    Process.send_after(self(), :think, 1000)
+    Process.send_after(self(), :think, @cycle_time)
     {:noreply, %{state | last_action: :look}}
   end
 
@@ -84,13 +59,13 @@ defmodule Shinstagram.Agents.Profile do
            {:ok, location} <- gen_location(image_prompt, profile),
            {:ok, caption} <- gen_caption(image_prompt, profile),
            {:ok, image_url} <- gen_image(image_prompt),
-           {:ok, post} <- create_post(profile, image_url, image_prompt, caption, location) do
-        Process.send_after(self(), :think, 1000)
+           {:ok, _post} <- create_post(profile, image_url, image_prompt, caption, location) do
+        Process.send_after(self(), :think, @cycle_time)
         {:noreply, %{state | last_action: :post}}
       end
     else
-      broadcast({:thought, "can't post, posted too recently!"}, profile)
-      Process.send_after(self(), :think, 1000)
+      broadcast({:thought, "🚫 can't post, posted too recently!"}, profile)
+      Process.send_after(self(), :think, @cycle_time)
       {:noreply, %{state | last_action: :post}}
     end
   end
@@ -101,7 +76,7 @@ defmodule Shinstagram.Agents.Profile do
     {:ok, post} =
       Timeline.create_comment(profile, post, %{body: comment_body |> String.replace("\"", "")})
 
-    broadcast({:action, "just commented '#{comment_body}' on #{post.id}"}, profile)
+    broadcast({:action, "💬 just commented '#{comment_body}' on #{post.id}"}, profile)
   end
 
   defp handle_decision({post, profile, decision, explanation}) do
@@ -116,7 +91,7 @@ defmodule Shinstagram.Agents.Profile do
 
   # helpers
   defp evaluate(profile, post) do
-    broadcast({:thought, "is evaluating post:#{post.id}"}, profile)
+    broadcast({:thought, "👀 is evaluating post:#{post.id}"}, profile)
     poster = Profiles.get_profile!(post.profile_id)
 
     {:ok, result} =
@@ -154,18 +129,18 @@ defmodule Shinstagram.Agents.Profile do
   defp gen_image_prompt(profile) do
     profile
     |> Timeline.gen_image_prompt()
-    |> broadcast({:thought, "picked a photo subject"}, profile)
+    |> broadcast({:thought, "🖼️ picked a photo subject"}, profile)
   end
 
   defp gen_location(image_prompt, profile) do
     {:ok, location} = Timeline.gen_location(image_prompt)
-    broadcast({:action, "just took a photo in #{location} of #{image_prompt}"}, profile)
+    broadcast({:action, "📸 just took a photo in #{location} of #{image_prompt}"}, profile)
     {:ok, location}
   end
 
   defp gen_caption(image_prompt, profile) do
     {:ok, caption} = image_prompt |> Timeline.gen_caption(profile)
-    broadcast({:thought, "wrote a caption: '#{caption}'"}, profile)
+    broadcast({:thought, "📝 wrote a caption: '#{caption}'"}, profile)
     {:ok, caption}
   end
 
@@ -177,14 +152,14 @@ defmodule Shinstagram.Agents.Profile do
       caption: caption,
       location: location
     })
-    |> broadcast({:new_post, "posting photo! hope it goes well!"}, profile)
+    |> broadcast({:new_post, "🖼️ posting photo! hope it goes well!"}, profile)
   end
 
   defp broadcast({event, message}, profile) do
     {:ok, log} =
       Shinstagram.Logs.create_log(%{
         event: event |> Atom.to_string(),
-        message: "#{profile.username} #{message}",
+        message: "@#{profile.username} #{message}",
         profile_id: profile.id
       })
 
@@ -204,5 +179,32 @@ defmodule Shinstagram.Agents.Profile do
       [last_post] ->
         NaiveDateTime.diff(NaiveDateTime.utc_now(), last_post.inserted_at, :minute) >= 5
     end
+  end
+
+  # listeners for checking out what other profiles are doing
+  # def handle_info(
+  #       {"profile_activity", :new_post, %Log{profile_id: poster_profile_id} = log},
+  #       %{profile: profile} = state
+  #     )
+  #     when poster_profile_id != profile.id do
+  #   poster = Profiles.get_profile!(poster_profile_id)
+  #   [post] = Timeline.list_posts_by_profile(poster, 1)
+  #   broadcast({:thought, "saw just @#{poster.username} posted."}, profile)
+
+  #   [decision, explanation] = evaluate(profile, post)
+
+  #   broadcast({:thought, "wants to #{decision}"}, profile)
+
+  #   case decision do
+  #     "like" -> Timeline.create_like(profile, post)
+  #     "comment" -> send(self(), {:comment, post})
+  #     _ -> nil
+  #   end
+
+  #   {:noreply, state}
+  # end
+
+  def handle_info({"profile_activity", _, _}, socket) do
+    {:noreply, socket}
   end
 end

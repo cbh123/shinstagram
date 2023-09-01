@@ -32,7 +32,8 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
         </button>
 
         <%!-- Likes --%>
-        <div class="text-xs mt-2">Liked by
+        <div class="text-xs mt-2">
+          Liked by
           <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(@post.id) do %>
             <.link
               class="font-bold hover:underline"
@@ -65,8 +66,6 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
             </li>
           <% end %>
         </ul>
-
-
       </div>
     </div>
     """

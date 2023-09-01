@@ -20,18 +20,7 @@
   </.link>
 </div>
 
-<div class="mt-12">
-  <.header>Brain</.header>
-  <div
-    id="logs"
-    phx-update="stream"
-    class="h-64 space-y-3 overflow-scroll font-mono max-w-2xl mx-auto"
-  >
-    <ul :for={{id, log} <- @streams.logs} id={id} class="list-disc">
-      <li><%= log.event %> : <%= log.message %></li>
-    </ul>
-  </div>
-</div>
+<.live_component module={ShinstagramWeb.LogsComponent} id="logs" logs={@streams.logs} />
 
 <div id="posts" phx-update="stream" class="grid grid-cols-3 gap-2 mt-6">
   <div :for={{id, post} <- @streams.posts} id={id}>
