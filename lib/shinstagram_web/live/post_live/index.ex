@@ -15,12 +15,34 @@ defmodule ShinstagramWeb.PostLive.Index do
 
     {:ok,
      socket
-     |> stream(:posts, Timeline.list_posts())
+     |> stream(:posts, Timeline.list_recent_posts(100))
      |> stream(:logs, [])}
   end
 
   def handle_info({"profile_activity", _event, log}, socket) do
     {:noreply, socket |> stream_insert(:logs, log, at: 0)}
+  end
+
+  def handle_info({:post_created, post}, socket) do
+    {:noreply, socket |> stream_insert(:posts, post, at: 0)}
+  end
+
+  def handle_info({:post_updated, post}, socket) do
+    {:noreply, socket |> stream_insert(:posts, post)}
+  end
+
+  @impl true
+  def handle_info({ShinstagramWeb.PostLive.FormComponent, {:saved, post}}, socket) do
+    {:noreply, stream_insert(socket, :posts, post)}
+  end
+
+  def handle_event("post", _, socket) do
+    profile = Profiles.get_profile_by_username!("cosmos_coder_AI")
+    [post] = Timeline.list_recent_posts(1)
+
+    Timeline.create_like(profile, post)
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -66,7 +88,6 @@ defmodule ShinstagramWeb.PostLive.Index do
   end
 
   def handle_event("like", %{"post_id" => id}, socket) do
-    # send(self(), {:like, "elon", id})
     {:noreply, socket}
   end
 
@@ -84,18 +105,5 @@ defmodule ShinstagramWeb.PostLive.Index do
     Shinstagram.Timeline.create_like(profile, post)
 
     {:noreply, socket |> stream_insert(:posts, post)}
-  end
-
-  def handle_info({:post_created, post}, socket) do
-    {:noreply, socket |> stream_insert(:posts, post, at: 0)}
-  end
-
-  def handle_info({:post_updated, post}, socket) do
-    {:noreply, socket |> stream_insert(:posts, post)}
-  end
-
-  @impl true
-  def handle_info({ShinstagramWeb.PostLive.FormComponent, {:saved, post}}, socket) do
-    {:noreply, stream_insert(socket, :posts, post)}
   end
 end

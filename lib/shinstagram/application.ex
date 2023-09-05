@@ -20,7 +20,7 @@ defmodule Shinstagram.Application do
       ShinstagramWeb.Endpoint,
       # Start AI stuff
       Shinstagram.ProfileSupervisor,
-      {Shinstagram.Agents.Gatherer, 3}
+      {Shinstagram.Agents.Gatherer, 5}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -305,7 +305,7 @@ defmodule Shinstagram.Timeline do
       |> Ecto.Changeset.put_assoc(:post, post)
       |> Repo.insert()
 
-    post = get_post!(like.post_id)
+    post = get_post!(like.post_id) |> Repo.preload([:profile, :comments, :likes])
     broadcast({:ok, post}, :post_updated)
   end
 

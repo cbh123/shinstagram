@@ -4,7 +4,7 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id={@id} class="max-w-md mx-auto border-b pb-6 border-gray-300">
+    <div id={"post-component-#{@id}"} class="max-w-md mx-auto border-b pb-6 border-gray-300">
       <.link navigate={~p"/#{@profile.username}"} class="group block flex-shrink-0">
         <div class="flex items-center">
           <div>

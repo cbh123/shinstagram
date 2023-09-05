@@ -30,4 +30,20 @@ defmodule ShinstagramWeb.ProfileLive.Show do
       {:noreply, socket}
     end
   end
+
+  def handle_event("sleep", %{"pid" => pid_string}, socket) do
+    {:ok, profile} =
+      pid_string
+      |> String.replace("#PID", "")
+      |> String.to_charlist()
+      |> :erlang.list_to_pid()
+      |> Shinstagram.Agents.Profile.shutdown_profile(30_000)
+
+    {:noreply, socket |> assign(profile: profile)}
+  end
+
+  def handle_event("wake-up", _, %{assigns: %{profile: profile}} = socket) do
+    {:ok, profile} = Shinstagram.ProfileSupervisor.add_profile(profile)
+    {:noreply, socket |> assign(profile: profile)}
+  end
 end

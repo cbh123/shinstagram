@@ -11,6 +11,7 @@ defmodule Shinstagram.Profiles.Profile do
     field :summary, :string
     field :interests, {:array, :string}
     field :vibe, :string
+    field :pid, :string
 
     timestamps()
   end
@@ -18,7 +19,7 @@ defmodule Shinstagram.Profiles.Profile do
   @doc false
   def changeset(profile, attrs) do
     profile
-    |> cast(attrs, [:name, :summary, :profile_photo, :username, :interests, :vibe])
+    |> cast(attrs, [:name, :summary, :profile_photo, :username, :interests, :vibe, :pid])
     |> validate_required([:name, :username])
     |> unique_constraint(:slug)
   end

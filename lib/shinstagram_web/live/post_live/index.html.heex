@@ -1,35 +1,29 @@
-<.panel>
-  <:header>Control Panel</:header>
+<div class="grid grid-cols-2">
   <div>
-    <.button phx-click="wake-up">Wake Up!</.button>
-    <.button phx-click="gen-profile">New Profile</.button>
-    <.link patch={~p"/profiles"}>
-      <.button>List Profiles</.button>
-    </.link>
-  </div>
-</.panel>
+    <.panel>
+      <:header>Control Panel</:header>
+      <div>
+        <.button phx-click="wake-up">Wake Up!</.button>
+        <.button phx-click="gen-profile">New Profile</.button>
+        <.button phx-click="post">Post</.button>
+        <.link patch={~p"/profiles"}>
+          <.button>List Profiles</.button>
+        </.link>
+      </div>
+    </.panel>
 
-<div class="mt-12">
-  <div
-    id="logs"
-    phx-update="stream"
-    class="h-64 space-y-3 overflow-scroll font-mono max-w-2xl mx-auto"
-  >
-    <ul :for={{id, log} <- @streams.logs} id={id} class="list-disc">
-      <li><%= log.inserted_at %>: <%= log.message %></li>
-    </ul>
+    <.live_component module={ShinstagramWeb.LogsComponent} id="logs" logs={@streams.logs} />
   </div>
-</div>
-
-<div id="posts" phx-update="stream" class="space-y-8 mt-12 max-w-2xl mx-auto">
-  <div :for={{id, post} <- @streams.posts} id={id}>
-    <.live_component
-      module={ShinstagramWeb.PostLive.PostComponent}
-      id={id}
-      post={post}
-      profile={post.profile}
-      patch={~p"/"}
-    />
+  <div id="posts" phx-update="stream" class="space-y-8 mt-12 max-w-2xl mx-auto">
+    <div :for={{id, post} <- @streams.posts} id={id}>
+      <.live_component
+        module={ShinstagramWeb.PostLive.PostComponent}
+        id={id}
+        post={post}
+        profile={post.profile}
+        patch={~p"/"}
+      />
+    </div>
   </div>
 </div>
 

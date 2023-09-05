@@ -10,25 +10,37 @@ defmodule Shinstagram.Agents.Profile do
 
   @channel "feed"
   @cycle_time 1000
+  @actions_probabilities [{:post, 0.6}, {:look, 0.3}, {:sleep, 0.01}]
 
   def start_link(profile) do
-    GenServer.start_link(__MODULE__, %{profile: profile, last_action: nil})
+    {:ok, pid} = GenServer.start_link(__MODULE__, %{profile: profile, last_action: nil})
+    {:ok, pid}
+  end
+
+  def stop_profile do
+    GenServer.cast(__MODULE__, :stop)
+  end
+
+  def shutdown_profile(pid, timeout \\ 5000) do
+    profile = Profiles.get_profile_by_pid!(pid)
+    broadcast({:action, "💤", "I'm going back to sleep..."}, profile)
+    GenServer.stop(pid, :normal, timeout)
+
+    Profiles.update_profile(profile, %{pid: nil})
   end
 
   def init(state) do
     Phoenix.PubSub.subscribe(Shinstagram.PubSub, "feed")
-    broadcast({:thought, "🛌 is waking up!"}, state.profile)
+    broadcast({:thought, "🛌", "I'm waking up!"}, state.profile)
 
-    Process.send_after(self(), :think, @cycle_time * 3)
+    Process.send_after(self(), :think, 3000)
     {:ok, state}
   end
 
-  # The pre-frontal cortext of a profile
+  # The pre-frontal cortex of a profile
   def handle_info(:think, %{profile: profile, last_action: last_action} = state) do
-    actions = [:post, :look]
-
-    action = Enum.random(actions)
-    broadcast({:thought, "wants to #{action |> Atom.to_string()}"}, profile)
+    action = get_next_action()
+    broadcast({:thought, "💭", "I want to #{action |> Atom.to_string()}"}, profile)
 
     if action != last_action do
       Process.send_after(self(), action, @cycle_time)
@@ -39,8 +51,15 @@ defmodule Shinstagram.Agents.Profile do
     {:noreply, state}
   end
 
+  def handle_info(:sleep, %{profile: profile} = state) do
+    broadcast({:action, "💤", "I'm going back to sleep..."}, profile)
+    Shinstagram.Profiles.update_profile(profile, %{pid: nil})
+
+    {:stop, :normal, state}
+  end
+
   def handle_info(:look, %{profile: profile} = state) do
-    broadcast({:thought, "📜 is scrolling at the feed"}, profile)
+    broadcast({:thought, "🤳", "I'm scrolling at the feed"}, profile)
     number_of_posts = 1..10 |> Enum.random()
 
     for post <- Timeline.list_recent_posts(number_of_posts) do
@@ -48,7 +67,7 @@ defmodule Shinstagram.Agents.Profile do
       |> handle_decision()
     end
 
-    broadcast({:thought, "is DONE scrolling at the feed"}, profile)
+    broadcast({:thought, "📵", "I'm done scrolling at the feed"}, profile)
     Process.send_after(self(), :think, @cycle_time)
     {:noreply, %{state | last_action: :look}}
   end
@@ -59,12 +78,12 @@ defmodule Shinstagram.Agents.Profile do
            {:ok, location} <- gen_location(image_prompt, profile),
            {:ok, caption} <- gen_caption(image_prompt, profile),
            {:ok, image_url} <- gen_image(image_prompt),
-           {:ok, _post} <- create_post(profile, image_url, image_prompt, caption, location) do
+           {:ok, _post} <- create_post(profile, image_url, image_prompt, caption, location, state) do
         Process.send_after(self(), :think, @cycle_time)
         {:noreply, %{state | last_action: :post}}
       end
     else
-      broadcast({:thought, "🚫 can't post, posted too recently!"}, profile)
+      broadcast({:thought, "🚫", "I can't post, posted too recently!"}, profile)
       Process.send_after(self(), :think, @cycle_time)
       {:noreply, %{state | last_action: :post}}
     end
@@ -76,11 +95,14 @@ defmodule Shinstagram.Agents.Profile do
     {:ok, post} =
       Timeline.create_comment(profile, post, %{body: comment_body |> String.replace("\"", "")})
 
-    broadcast({:action, "💬 just commented '#{comment_body}' on #{post.id}"}, profile)
+    broadcast({:action, "💬", "Just commented '#{comment_body}' on post:#{post.id}"}, profile)
   end
 
   defp handle_decision({post, profile, decision, explanation}) do
-    broadcast({:thought, "wants to #{decision} because #{explanation}"}, profile)
+    broadcast(
+      {:thought, "💭", "I want to #{decision} on post:#{post.id} because '#{explanation}'"},
+      profile
+    )
 
     case decision do
       "like" -> Timeline.create_like(profile, post)
@@ -89,9 +111,19 @@ defmodule Shinstagram.Agents.Profile do
     end
   end
 
+  defp get_next_action() do
+    weighted_list =
+      @actions_probabilities
+      |> Enum.flat_map(fn {action, probability} ->
+        List.duplicate(action, Float.round(probability * 100) |> trunc())
+      end)
+
+    Enum.random(weighted_list)
+  end
+
   # helpers
   defp evaluate(profile, post) do
-    broadcast({:thought, "👀 is evaluating post:#{post.id}"}, profile)
+    broadcast({:thought, "👀", "I'm evaluating post:#{post.id}"}, profile)
     poster = Profiles.get_profile!(post.profile_id)
 
     {:ok, result} =
@@ -117,8 +149,8 @@ defmodule Shinstagram.Agents.Profile do
       What does your profile choose to do? If you recently commented or liked the photo,
       you probably want to ignore the photo now.
 
-      Your decision options are: [like, comment, ignore] the photo.
-      Answer in the format <decision>;;<explanation>
+      Your decision options are: [like, comment, ignore] the photo. Keep the explanation short.
+      Answer in the format <decision>;;<explanation-for-why>
       """
       |> chat_completion()
 
@@ -129,45 +161,56 @@ defmodule Shinstagram.Agents.Profile do
   defp gen_image_prompt(profile) do
     profile
     |> Timeline.gen_image_prompt()
-    |> broadcast({:thought, "🖼️ picked a photo subject"}, profile)
+    |> broadcast({:thought, "🖼️", "I picked a photo subject"}, profile)
   end
 
   defp gen_location(image_prompt, profile) do
     {:ok, location} = Timeline.gen_location(image_prompt)
-    broadcast({:action, "📸 just took a photo in #{location} of #{image_prompt}"}, profile)
+    broadcast({:action, "📸 ", "I took a photo in #{location} of #{image_prompt}"}, profile)
     {:ok, location}
   end
 
   defp gen_caption(image_prompt, profile) do
     {:ok, caption} = image_prompt |> Timeline.gen_caption(profile)
-    broadcast({:thought, "📝 wrote a caption: '#{caption}'"}, profile)
+    broadcast({:thought, "📝", "I wrote a caption: '#{caption}'"}, profile)
     {:ok, caption}
   end
 
-  defp create_post(profile, image_url, image_prompt, caption, location) do
-    profile
-    |> Timeline.create_post(%{
-      photo: image_url,
-      photo_prompt: image_prompt,
-      caption: caption,
-      location: location
-    })
-    |> broadcast({:new_post, "🖼️ posting photo! hope it goes well!"}, profile)
+  defp create_post(profile, image_url, image_prompt, caption, location, state) do
+    {:ok, post} =
+      profile
+      |> Timeline.create_post(%{
+        photo: image_url,
+        photo_prompt: image_prompt,
+        caption: caption,
+        location: location
+      })
+
+    broadcast(
+      {:new_post, "🖼️", "I'm posting the post:#{post.id}! I hope it goes well!"},
+      profile
+    )
+
+    Process.send_after(self(), :think, @cycle_time)
+    {:noreply, %{state | last_action: :post}}
   end
 
-  defp broadcast({event, message}, profile) do
+  defp broadcast({event, emoji, message}, profile) do
     {:ok, log} =
       Shinstagram.Logs.create_log(%{
         event: event |> Atom.to_string(),
-        message: "@#{profile.username} #{message}",
-        profile_id: profile.id
+        message: message,
+        profile_id: profile.id,
+        emoji: emoji
       })
+
+    log = log |> Shinstagram.Repo.preload(:profile)
 
     Phoenix.PubSub.broadcast(Shinstagram.PubSub, @channel, {"profile_activity", event, log})
   end
 
-  defp broadcast({:ok, text}, {event, message}, profile) do
-    broadcast({event, message}, profile)
+  defp broadcast({:ok, text}, {event, emoji, message}, profile) do
+    broadcast({event, emoji, message}, profile)
     {:ok, text}
   end
 
@@ -182,6 +225,7 @@ defmodule Shinstagram.Agents.Profile do
   end
 
   # listeners for checking out what other profiles are doing
+
   # def handle_info(
   #       {"profile_activity", :new_post, %Log{profile_id: poster_profile_id} = log},
   #       %{profile: profile} = state

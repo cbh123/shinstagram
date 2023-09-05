@@ -7,6 +7,7 @@ defmodule Shinstagram.Logs.Log do
   schema "logs" do
     field(:event, :string)
     field(:message, :string)
+    field(:emoji, :string)
     belongs_to(:profile, Shinstagram.Profiles.Profile)
 
     timestamps()
@@ -15,7 +16,7 @@ defmodule Shinstagram.Logs.Log do
   @doc false
   def changeset(log, attrs) do
     log
-    |> cast(attrs, [:message, :event, :profile_id])
+    |> cast(attrs, [:message, :event, :profile_id, :emoji])
     |> validate_required([:message, :event])
   end
 end

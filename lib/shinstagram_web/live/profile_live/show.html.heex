@@ -1,32 +1,58 @@
-<div class="sm:flex">
-  <div class="mb-4 flex-shrink-0 sm:mb-0 sm:mr-4">
-    <img
-      class="h-32 rounded-full w-full border border-gray-300 bg-white text-gray-300 sm:w-32"
-      src={@profile.profile_photo}
-      alt=""
-    />
+<div class="max-w-2xl mx-auto">
+  <div class="sm:flex">
+    <div class="mb-4 flex-shrink-0 sm:mb-0 sm:mr-4">
+      <img
+        class="h-32 rounded-full w-full border border-gray-300 bg-white text-gray-300 sm:w-32"
+        src={@profile.profile_photo}
+        alt=""
+      />
+    </div>
+    <div>
+      <h4 class="text-lg font-bold"><%= @profile.name %></h4>
+      <p><%= @profile.summary %></p>
+      <p class="font-semibold text-gray-500 mt-4">Vibe</p>
+      <p><%= @profile.vibe %></p>
+
+      <div class="mt-2">
+        <%= if @profile.pid do %>
+          <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+            Awake — <%= @profile.pid %>
+          </span>
+        <% else %>
+          <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+            Asleep
+          </span>
+        <% end %>
+      </div>
+    </div>
   </div>
-  <div>
-    <h4 class="text-lg font-bold"><%= @profile.name %></h4>
-    <p><%= @profile.summary %></p>
-    <p class="font-semibold text-gray-500 mt-4">Vibe</p>
-    <p><%= @profile.vibe %></p>
-  </div>
-</div>
 
-<div class="mt-4">
-  <.link patch={~p"/profiles/#{@profile.username}/show/edit"} phx-click={JS.push_focus()}>
-    <.button>Edit profile</.button>
-  </.link>
-</div>
-
-<.live_component module={ShinstagramWeb.LogsComponent} id="logs" logs={@streams.logs} />
-
-<div id="posts" phx-update="stream" class="grid grid-cols-3 gap-2 mt-6">
-  <div :for={{id, post} <- @streams.posts} id={id}>
-    <.link navigate={~p"/posts/#{post.id}"}>
-      <img src={post.photo} alt="" />
+  <div class="mt-4">
+    <.link
+      class="hidden"
+      patch={~p"/profiles/#{@profile.username}/show/edit"}
+      phx-click={JS.push_focus()}
+    >
+      <.button>Edit profile</.button>
     </.link>
+
+    <%= if @profile.pid do %>
+      <.outline_button phx-click="sleep" phx-value-pid={@profile.pid}>💤 Sleep</.outline_button>
+    <% else %>
+      <.outline_button phx-click="wake-up" phx-value-pid={@profile.pid}>
+        🌞 Wake Up
+      </.outline_button>
+    <% end %>
+  </div>
+
+  <.live_component module={ShinstagramWeb.LogsComponent} id="logs" logs={@streams.logs} />
+
+  <div id="posts" phx-update="stream" class="grid grid-cols-3 gap-2 mt-6">
+    <div :for={{id, post} <- @streams.posts} id={id}>
+      <.link navigate={~p"/posts/#{post.id}"}>
+        <img src={post.photo} alt="" />
+      </.link>
+    </div>
   </div>
 </div>
 

@@ -14,8 +14,18 @@ defmodule Shinstagram.Profiles do
   @model "gpt-4"
   @dumb_model "gpt-3.5-turbo"
 
+  def reset_all_pids do
+    from(p in Profile)
+    |> Repo.update_all(set: [pid: nil])
+  end
+
   def get_random_profile() do
     from(p in Profile, order_by: fragment("RANDOM()"), limit: 1) |> Repo.one()
+  end
+
+  def get_random_asleep_profile() do
+    from(p in Profile, where: is_nil(p.pid), order_by: fragment("RANDOM()"), limit: 1)
+    |> Repo.one()
   end
 
   @doc """
@@ -91,6 +101,11 @@ defmodule Shinstagram.Profiles do
 
   def get_profile_by_username!(username) do
     Repo.get_by!(Profile, username: username)
+  end
+
+  def get_profile_by_pid!(pid) do
+    pid_string = inspect(pid)
+    Repo.get_by!(Profile, pid: pid_string)
   end
 
   @doc """

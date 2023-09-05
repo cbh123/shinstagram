@@ -21,8 +21,6 @@ defmodule Shinstagram.Agents.Gatherer do
   end
 
   def handle_info(:kickoff, profile_count) do
-    IO.inspect("woken up", label: "")
-
     1..profile_count
     |> Enum.each(fn _ -> Shinstagram.ProfileSupervisor.add_profile() end)
 
@@ -30,7 +28,6 @@ defmodule Shinstagram.Agents.Gatherer do
   end
 
   def handle_cast(:done, _profile_count = 1) do
-    IO.puts("Profiles are done!")
     System.halt(0)
   end
 

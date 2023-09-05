@@ -12,17 +12,21 @@ defmodule Shinstagram.ProfileSupervisor do
   end
 
   def init(:no_args) do
+    Shinstagram.Profiles.reset_all_pids()
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def add_profile do
-    profile = Shinstagram.Profiles.get_random_profile()
-
-    {:ok, _pid} = DynamicSupervisor.start_child(@me, {Shinstagram.Agents.Profile, profile})
+  def add_profile(profile) do
+    {:ok, pid} = DynamicSupervisor.start_child(@me, {Shinstagram.Agents.Profile, profile})
+    pid_string = inspect(pid)
+    Shinstagram.Profiles.update_profile(profile, %{pid: pid_string})
   end
 
-  def kill_everyone do
-    IO.puts("SHUTTING DOWN!!!")
-    DynamicSupervisor.stop(@me, :commanded)
+  def add_profile do
+    profile = Shinstagram.Profiles.get_random_asleep_profile()
+
+    {:ok, pid} = DynamicSupervisor.start_child(@me, {Shinstagram.Agents.Profile, profile})
+    pid_string = inspect(pid)
+    Shinstagram.Profiles.update_profile(profile, %{pid: pid_string})
   end
 end

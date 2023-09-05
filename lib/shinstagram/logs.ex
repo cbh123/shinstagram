@@ -22,7 +22,7 @@ defmodule Shinstagram.Logs do
   end
 
   def list_logs_by_profile(%Shinstagram.Profiles.Profile{id: id}) do
-    from(l in Log, where: l.profile_id == ^id, order_by: {:desc, :inserted_at})
+    from(l in Log, where: l.profile_id == ^id, order_by: {:desc, :inserted_at}, limit: 100)
     |> Repo.all()
     |> Repo.preload(:profile)
   end
