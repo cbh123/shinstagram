@@ -67,24 +67,11 @@ defmodule ShinstagramWeb.PostLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("comment", %{"post-id" => post_id}, socket) do
-    post = Timeline.get_post!(post_id)
+  def handle_event("sleep", _, socket) do
+    Profiles.list_awake_profiles()
+    |> Enum.map(fn profile -> Shinstagram.Agents.Profile.shutdown_profile(profile.pid) end)
 
-    Profiles.get_random_profile()
-    |> Timeline.create_comment(post, %{body: "This is a comment"})
-
-    post =
-      Timeline.get_post!(post_id)
-      |> Repo.preload([:profile, :likes, :comments])
-
-    {:noreply, socket |> stream_insert(:posts, post)}
-  end
-
-  def handle_event("gen-profile", _, socket) do
-    {:ok, profile} = Profiles.gen_profile()
-
-    {:noreply,
-     socket |> redirect(to: ~p"/#{profile.username}") |> put_flash(:info, "New profile created")}
+    {:noreply, socket}
   end
 
   def handle_event("like", %{"post_id" => id}, socket) do

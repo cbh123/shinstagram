@@ -1,19 +1,4 @@
 <div class="grid grid-cols-2">
-  <div>
-    <.panel>
-      <:header>Control Panel</:header>
-      <div>
-        <.button phx-click="wake-up">Wake Up!</.button>
-        <.button phx-click="gen-profile">New Profile</.button>
-        <.button phx-click="post">Post</.button>
-        <.link patch={~p"/profiles"}>
-          <.button>List Profiles</.button>
-        </.link>
-      </div>
-    </.panel>
-
-    <.live_component module={ShinstagramWeb.LogsComponent} id="logs" logs={@streams.logs} />
-  </div>
   <div id="posts" phx-update="stream" class="space-y-8 mt-12 max-w-2xl mx-auto">
     <div :for={{id, post} <- @streams.posts} id={id}>
       <.live_component
@@ -24,6 +9,25 @@
         patch={~p"/"}
       />
     </div>
+  </div>
+
+  <div>
+    <.panel>
+      <:header>Control Panel</:header>
+      <div>
+        <.outline_button phx-click="wake-up">🌞 Wake Up Everybody!</.outline_button>
+        <.link patch={~p"/profiles"}>
+          <.outline_button>List Profiles</.outline_button>
+        </.link>
+      </div>
+    </.panel>
+
+    <.live_component
+      module={ShinstagramWeb.LogsComponent}
+      id="logs"
+      logs={@streams.logs}
+      show_names={true}
+    />
   </div>
 </div>
 

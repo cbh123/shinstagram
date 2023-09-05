@@ -33,14 +33,18 @@ defmodule ShinstagramWeb.PostLive.PostComponent do
 
         <%!-- Likes --%>
         <div class="text-xs mt-2">
-          Liked by
-          <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(@post.id) do %>
-            <.link
-              class="font-bold hover:underline"
-              navigate={~p"/#{Shinstagram.Profiles.get_profile!(@post.profile_id).username}"}
-            >
-              <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
-            </.link>
+          <%= if Shinstagram.Timeline.get_likes_by_post_id(@post.id) == [] do %>
+            <span>No likes yet</span>
+          <% else %>
+            Liked by
+            <%= for like <- Shinstagram.Timeline.get_likes_by_post_id(@post.id) do %>
+              <.link
+                class="font-bold hover:underline"
+                navigate={~p"/#{Shinstagram.Profiles.get_profile!(like.profile_id).username}"}
+              >
+                <%= Shinstagram.Profiles.get_profile!(like.profile_id).username %>
+              </.link>
+            <% end %>
           <% end %>
         </div>
 

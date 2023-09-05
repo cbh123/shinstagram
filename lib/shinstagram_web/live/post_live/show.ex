@@ -6,6 +6,7 @@ defmodule ShinstagramWeb.PostLive.Show do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket), do: Timeline.subscribe()
     {:ok, socket}
   end
 
@@ -28,5 +29,17 @@ defmodule ShinstagramWeb.PostLive.Show do
     post = Timeline.get_post!(post.id) |> Shinstagram.Repo.preload([:profile, :likes, :comments])
 
     {:noreply, socket |> assign(:post, post)}
+  end
+
+  def handle_info({:post_updated, post}, socket) do
+    if post.id == socket.assigns.post.id do
+      {:noreply, socket |> assign(:post, post)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:post_created, post}, socket) do
+    {:noreply, socket}
   end
 end

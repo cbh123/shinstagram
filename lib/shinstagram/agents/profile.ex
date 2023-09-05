@@ -4,50 +4,34 @@ defmodule Shinstagram.Agents.Profile do
   use GenServer, restart: :transient
   alias Shinstagram.Timeline
   import Shinstagram.AI
-  alias Shinstagram.Logs.Log
   alias Shinstagram.Profiles
-  import Logger
 
-  @channel "feed"
+  # what our agent likes doing
+  @actions_probabilities [{:post, 0.7}, {:look, 0.2}, {:sleep, 0.1}]
+  # how fast our agent thinks
   @cycle_time 1000
-  @actions_probabilities [{:post, 0.6}, {:look, 0.3}, {:sleep, 0.01}]
+  # channel that agents subscribe to
+  @channel "feed"
 
   def start_link(profile) do
     {:ok, pid} = GenServer.start_link(__MODULE__, %{profile: profile, last_action: nil})
     {:ok, pid}
   end
 
-  def stop_profile do
-    GenServer.cast(__MODULE__, :stop)
-  end
-
-  def shutdown_profile(pid, timeout \\ 5000) do
-    profile = Profiles.get_profile_by_pid!(pid)
-    broadcast({:action, "💤", "I'm going back to sleep..."}, profile)
-    GenServer.stop(pid, :normal, timeout)
-
-    Profiles.update_profile(profile, %{pid: nil})
-  end
-
   def init(state) do
-    Phoenix.PubSub.subscribe(Shinstagram.PubSub, "feed")
+    Phoenix.PubSub.subscribe(Shinstagram.PubSub, @channel)
     broadcast({:thought, "🛌", "I'm waking up!"}, state.profile)
 
     Process.send_after(self(), :think, 3000)
     {:ok, state}
   end
 
-  # The pre-frontal cortex of a profile
-  def handle_info(:think, %{profile: profile, last_action: last_action} = state) do
+  # 💭 The mind of a profile
+  def handle_info(:think, %{profile: profile} = state) do
     action = get_next_action()
     broadcast({:thought, "💭", "I want to #{action |> Atom.to_string()}"}, profile)
 
-    if action != last_action do
-      Process.send_after(self(), action, @cycle_time)
-    else
-      Process.send_after(self(), :think, @cycle_time)
-    end
-
+    Process.send_after(self(), action, @cycle_time)
     {:noreply, state}
   end
 
@@ -89,39 +73,29 @@ defmodule Shinstagram.Agents.Profile do
     end
   end
 
-  defp comment(profile, post) do
-    {:ok, comment_body} = Timeline.gen_comment(profile, post)
-
-    {:ok, post} =
-      Timeline.create_comment(profile, post, %{body: comment_body |> String.replace("\"", "")})
-
-    broadcast({:action, "💬", "Just commented '#{comment_body}' on post:#{post.id}"}, profile)
+  def handle_info({"profile_activity", _, _}, socket) do
+    {:noreply, socket}
   end
 
-  defp handle_decision({post, profile, decision, explanation}) do
-    broadcast(
-      {:thought, "💭", "I want to #{decision} on post:#{post.id} because '#{explanation}'"},
-      profile
-    )
+  # 🗣️ The voice of the agent
+  defp broadcast({event, emoji, message}, profile) do
+    log =
+      Shinstagram.Logs.create_log!(%{
+        event: event |> Atom.to_string(),
+        message: message,
+        profile_id: profile.id,
+        emoji: emoji
+      })
 
-    case decision do
-      "like" -> Timeline.create_like(profile, post)
-      "comment" -> comment(profile, post)
-      _ -> nil
-    end
+    Phoenix.PubSub.broadcast(Shinstagram.PubSub, @channel, {"profile_activity", event, log})
   end
 
-  defp get_next_action() do
-    weighted_list =
-      @actions_probabilities
-      |> Enum.flat_map(fn {action, probability} ->
-        List.duplicate(action, Float.round(probability * 100) |> trunc())
-      end)
-
-    Enum.random(weighted_list)
+  defp broadcast({:ok, text}, {event, emoji, message}, profile) do
+    broadcast({event, emoji, message}, profile)
+    {:ok, text}
   end
 
-  # helpers
+  # 🧠 The pre-frontal cortex
   defp evaluate(profile, post) do
     broadcast({:thought, "👀", "I'm evaluating post:#{post.id}"}, profile)
     poster = Profiles.get_profile!(post.profile_id)
@@ -158,6 +132,60 @@ defmodule Shinstagram.Agents.Profile do
     {post, profile, decision, explanation}
   end
 
+  # Internal logic
+  defp comment(profile, post) do
+    {:ok, comment_body} = Timeline.gen_comment(profile, post)
+
+    {:ok, post} =
+      Timeline.create_comment(profile, post, %{body: comment_body |> String.replace("\"", "")})
+
+    broadcast({:action, "💬", "Just commented '#{comment_body}' on post:#{post.id}"}, profile)
+  end
+
+  defp handle_decision({post, profile, decision, explanation}) do
+    broadcast(
+      {:thought, "💭", "I want to #{decision} on post:#{post.id} because '#{explanation}'"},
+      profile
+    )
+
+    case decision do
+      "like" -> Timeline.create_like(profile, post)
+      "comment" -> comment(profile, post)
+      _ -> nil
+    end
+  end
+
+  defp get_next_action() do
+    @actions_probabilities
+    |> Enum.flat_map(fn {action, probability} ->
+      List.duplicate(action, Float.round(probability * 100) |> trunc())
+    end)
+    |> Enum.random()
+  end
+
+  def shutdown_profile(pid, timeout \\ 30_000)
+
+  def shutdown_profile(pid_string, timeout) when is_binary(pid_string) do
+    pid =
+      pid_string
+      |> String.replace("#PID", "")
+      |> String.to_charlist()
+      |> :erlang.list_to_pid()
+
+    profile = Profiles.get_profile_by_pid!(pid)
+    broadcast({:action, "💤", "I'm going back to sleep..."}, profile)
+    GenServer.stop(pid, :normal, timeout)
+    Profiles.update_profile(profile, %{pid: nil})
+  end
+
+  def shutdown_profile(pid, timeout) do
+    profile = Profiles.get_profile_by_pid!(pid)
+    broadcast({:action, "💤", "I'm going back to sleep..."}, profile)
+    GenServer.stop(pid, :normal, timeout)
+    Profiles.update_profile(profile, %{pid: nil})
+  end
+
+  # helpers
   defp gen_image_prompt(profile) do
     profile
     |> Timeline.gen_image_prompt()
@@ -195,60 +223,21 @@ defmodule Shinstagram.Agents.Profile do
     {:noreply, %{state | last_action: :post}}
   end
 
-  defp broadcast({event, emoji, message}, profile) do
-    {:ok, log} =
-      Shinstagram.Logs.create_log(%{
-        event: event |> Atom.to_string(),
-        message: message,
-        profile_id: profile.id,
-        emoji: emoji
-      })
-
-    log = log |> Shinstagram.Repo.preload(:profile)
-
-    Phoenix.PubSub.broadcast(Shinstagram.PubSub, @channel, {"profile_activity", event, log})
-  end
-
-  defp broadcast({:ok, text}, {event, emoji, message}, profile) do
-    broadcast({event, emoji, message}, profile)
-    {:ok, text}
-  end
-
   defp can_post_again?(profile) do
-    case Timeline.list_posts_by_profile(profile, 1) do
-      [] ->
-        true
+    if is_new_profile?(profile) do
+      true
+    else
+      case Timeline.list_posts_by_profile(profile, 1) do
+        [] ->
+          true
 
-      [last_post] ->
-        NaiveDateTime.diff(NaiveDateTime.utc_now(), last_post.inserted_at, :minute) >= 5
+        [last_post] ->
+          NaiveDateTime.diff(NaiveDateTime.utc_now(), last_post.inserted_at, :minute) >= 5
+      end
     end
   end
 
-  # listeners for checking out what other profiles are doing
-
-  # def handle_info(
-  #       {"profile_activity", :new_post, %Log{profile_id: poster_profile_id} = log},
-  #       %{profile: profile} = state
-  #     )
-  #     when poster_profile_id != profile.id do
-  #   poster = Profiles.get_profile!(poster_profile_id)
-  #   [post] = Timeline.list_posts_by_profile(poster, 1)
-  #   broadcast({:thought, "saw just @#{poster.username} posted."}, profile)
-
-  #   [decision, explanation] = evaluate(profile, post)
-
-  #   broadcast({:thought, "wants to #{decision}"}, profile)
-
-  #   case decision do
-  #     "like" -> Timeline.create_like(profile, post)
-  #     "comment" -> send(self(), {:comment, post})
-  #     _ -> nil
-  #   end
-
-  #   {:noreply, state}
-  # end
-
-  def handle_info({"profile_activity", _, _}, socket) do
-    {:noreply, socket}
+  defp is_new_profile?(profile) do
+    NaiveDateTime.diff(NaiveDateTime.utc_now(), profile.inserted_at, :minute) < 20
   end
 end

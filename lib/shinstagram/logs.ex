@@ -61,6 +61,13 @@ defmodule Shinstagram.Logs do
     |> Repo.insert()
   end
 
+  def create_log!(attrs \\ %{}) do
+    %Log{}
+    |> Log.changeset(attrs)
+    |> Repo.insert!()
+    |> Repo.preload(:profile)
+  end
+
   @doc """
   Updates a log.
 

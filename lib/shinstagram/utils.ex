@@ -35,7 +35,6 @@ defmodule Shinstagram.Utils do
     Logger.info("Image generated: #{prediction.output}")
 
     result = List.first(prediction.output)
-
     save_r2(prediction.id, result)
   end
 

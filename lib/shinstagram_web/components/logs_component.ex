@@ -24,6 +24,7 @@ defmodule ShinstagramWeb.LogsComponent do
                 <thead>
                   <tr>
                     <th
+                      :if={@show_names}
                       scope="col"
                       class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0"
                     >
@@ -45,7 +46,7 @@ defmodule ShinstagramWeb.LogsComponent do
                 </thead>
                 <tbody id={@id} phx-update="stream" class="divide-y divide-gray-200 bg-white">
                   <tr :for={{id, log} <- @logs} id={id}>
-                    <td class="whitespace-nowrap py-5 pl-4 pr-3 text-sm sm:pl-0">
+                    <td :if={@show_names} class="whitespace-nowrap py-5 pl-4 pr-3 text-sm sm:pl-0">
                       <.link class="flex items-center" navigate={"/#{log.profile.username}"}>
                         <div class="h-11 w-11 flex-shrink-0">
                           <img class="h-11 w-11 rounded-full" src={log.profile.profile_photo} alt="" />

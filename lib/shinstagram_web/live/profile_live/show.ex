@@ -9,6 +9,7 @@ defmodule ShinstagramWeb.ProfileLive.Show do
   @impl true
   def mount(%{"username" => username}, _session, socket) do
     if connected?(socket) do
+      Timeline.subscribe()
       Phoenix.PubSub.subscribe(Shinstagram.PubSub, "feed")
     end
 
@@ -31,19 +32,25 @@ defmodule ShinstagramWeb.ProfileLive.Show do
     end
   end
 
-  def handle_event("sleep", %{"pid" => pid_string}, socket) do
-    {:ok, profile} =
-      pid_string
-      |> String.replace("#PID", "")
-      |> String.to_charlist()
-      |> :erlang.list_to_pid()
-      |> Shinstagram.Agents.Profile.shutdown_profile(30_000)
+  def handle_info({:post_created, post}, socket) do
+    if post.profile.id == socket.assigns.profile.id do
+      {:noreply, socket |> stream_insert(:posts, post, at: 0)}
+    else
+      {:noreply, socket}
+    end
+  end
 
-    {:noreply, socket |> assign(profile: profile)}
+  def handle_info({:post_updated, post}, socket) do
+    {:noreply, socket}
   end
 
   def handle_event("wake-up", _, %{assigns: %{profile: profile}} = socket) do
     {:ok, profile} = Shinstagram.ProfileSupervisor.add_profile(profile)
+    {:noreply, socket |> assign(profile: profile)}
+  end
+
+  def handle_event("sleep", %{"pid" => pid_string}, socket) do
+    {:ok, profile} = Shinstagram.Agents.Profile.shutdown_profile(pid_string, 30_000)
     {:noreply, socket |> assign(profile: profile)}
   end
 end

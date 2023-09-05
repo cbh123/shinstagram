@@ -18,15 +18,12 @@ defmodule Shinstagram.ProfileSupervisor do
 
   def add_profile(profile) do
     {:ok, pid} = DynamicSupervisor.start_child(@me, {Shinstagram.Agents.Profile, profile})
-    pid_string = inspect(pid)
-    Shinstagram.Profiles.update_profile(profile, %{pid: pid_string})
+    Shinstagram.Profiles.update_profile(profile, %{pid: inspect(pid)})
   end
 
-  def add_profile do
+  def add_asleep_profile() do
     profile = Shinstagram.Profiles.get_random_asleep_profile()
-
     {:ok, pid} = DynamicSupervisor.start_child(@me, {Shinstagram.Agents.Profile, profile})
-    pid_string = inspect(pid)
-    Shinstagram.Profiles.update_profile(profile, %{pid: pid_string})
+    Shinstagram.Profiles.update_profile(profile, %{pid: inspect(pid)})
   end
 end

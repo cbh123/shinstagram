@@ -22,7 +22,7 @@ defmodule Shinstagram.Agents.Gatherer do
 
   def handle_info(:kickoff, profile_count) do
     1..profile_count
-    |> Enum.each(fn _ -> Shinstagram.ProfileSupervisor.add_profile() end)
+    |> Enum.each(fn _ -> Shinstagram.ProfileSupervisor.add_asleep_profile() end)
 
     {:noreply, profile_count}
   end

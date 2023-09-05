@@ -121,6 +121,10 @@ defmodule Shinstagram.Profiles do
     Repo.all(Profile)
   end
 
+  def list_awake_profiles do
+    from(p in Profile, where: not is_nil(p.pid)) |> Repo.all()
+  end
+
   @doc """
   Gets a single profile.
 
