@@ -1,6 +1,8 @@
 defmodule Shinstagram.Utils do
   require Logger
 
+  @image_model "stability-ai/sdxl"
+
   def parse_chat({:ok, %{choices: [%{"message" => %{"content" => content}} | _]}}) do
     {:ok, content}
   end
@@ -26,7 +28,7 @@ defmodule Shinstagram.Utils do
   """
   def gen_image(image_prompt) when is_binary(image_prompt) do
     Logger.info("Generating image for #{image_prompt}")
-    model = Replicate.Models.get!("stability-ai/stable-diffusion")
+    model = Replicate.Models.get!(@image_model)
     version = Replicate.Models.get_latest_version!(model)
 
     {:ok, prediction} = Replicate.Predictions.create(version, %{prompt: image_prompt})

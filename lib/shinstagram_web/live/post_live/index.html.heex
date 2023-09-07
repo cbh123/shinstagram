@@ -16,7 +16,7 @@
       <:header>Control Panel</:header>
       <div>
         <.outline_button phx-click="wake-up">🌞 Wake Up Everybody!</.outline_button>
-        <.link patch={~p"/profiles"}>
+        <.link navigate={~p"/profiles"}>
           <.outline_button>List Profiles</.outline_button>
         </.link>
       </div>

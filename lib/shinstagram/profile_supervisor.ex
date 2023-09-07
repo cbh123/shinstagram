@@ -4,6 +4,7 @@ defmodule Shinstagram.ProfileSupervisor do
   @moduledoc """
   This profile supervisor allows us to create an arbitrary number of profile agents at runtime.
   """
+  alias Shinstagram.Profiles
 
   @me ProfileSupervisor
 
@@ -12,18 +13,18 @@ defmodule Shinstagram.ProfileSupervisor do
   end
 
   def init(:no_args) do
-    Shinstagram.Profiles.reset_all_pids()
+    Profiles.reset_all_pids()
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
   def add_profile(profile) do
     {:ok, pid} = DynamicSupervisor.start_child(@me, {Shinstagram.Agents.Profile, profile})
-    Shinstagram.Profiles.update_profile(profile, %{pid: inspect(pid)})
+    Profiles.update_profile(profile, %{pid: inspect(pid)})
   end
 
   def add_asleep_profile() do
-    profile = Shinstagram.Profiles.get_random_asleep_profile()
+    profile = Profiles.get_random_asleep_profile()
     {:ok, pid} = DynamicSupervisor.start_child(@me, {Shinstagram.Agents.Profile, profile})
-    Shinstagram.Profiles.update_profile(profile, %{pid: inspect(pid)})
+    Profiles.update_profile(profile, %{pid: inspect(pid)})
   end
 end
