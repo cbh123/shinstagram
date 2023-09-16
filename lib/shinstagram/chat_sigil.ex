@@ -1,12 +1,12 @@
 defmodule Shinstagram.ChatSigil do
   @doc """
-  Implement the ~x sigil for chat messages. Allows you to write a chat transcript
+  Implement the ~AI sigil for chat messages. Allows you to write a chat transcript
   using the format:
 
   ## Examples
 
     iex> import Shinstagram.ChatSigil
-    iex> ~x"model: gpt-3.5-turbo system: You are an expert at text to image prompts. Given a description, write a text-to-image prompt. user: sunset"
+    iex> ~AI"model: gpt-3.5-turbo system: You are an expert at text to image prompts. Given a description, write a text-to-image prompt. user: sunset"
     %{
       messages: [
         %{

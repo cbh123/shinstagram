@@ -101,7 +101,7 @@ defmodule Shinstagram.Agents.Profile do
     poster = Profiles.get_profile!(post.profile_id)
 
     {:ok, result} =
-      ~x"""
+      ~AI"""
       model: gpt-3.5-turbo
       system: You are a user on a photo sharing social site (called shinstagram).
       Here's some information about you:
