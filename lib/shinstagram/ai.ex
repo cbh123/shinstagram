@@ -26,7 +26,7 @@ defmodule Shinstagram.AI do
     model = Replicate.Models.get!("stability-ai/stable-diffusion")
 
     version =
-      Replicate.Models.get_latest_version!(
+      Replicate.Models.get_version!(
         model,
         "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4"
       )
