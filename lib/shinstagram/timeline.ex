@@ -4,6 +4,7 @@ defmodule Shinstagram.Timeline do
   """
 
   import Ecto.Query, warn: false
+  import AI
   import Shinstagram.AI
   alias Shinstagram.Repo
 
@@ -27,7 +28,7 @@ defmodule Shinstagram.Timeline do
   def gen_comment(%Profile{username: username, summary: summary, vibe: vibe}, %Post{} = post) do
     Logger.info("Generating comment for #{username} on post #{post.id}")
 
-    ~AI"""
+    ~l"""
     model: #{@model}
     system: You are a user on a photo sharing social network site (like instagram).
     Here's some information about you:
@@ -60,7 +61,7 @@ defmodule Shinstagram.Timeline do
       "A futuristic digital artwork with clean lines, neon glows, and dark background featuring bright, colorful accents."
   """
   def gen_image_prompt(%Profile{username: username, summary: summary, vibe: vibe}) do
-    ~AI"""
+    ~l"""
     model: #{@model}
     system: You are an expert at creating text-to-image prompts. The following profile is posting a photo to a social network and we need a way of describing the image they're posting. Can you output the text-to-image prompt? It should match the vibe of the profile. Don't include the word 'caption' in your output.
     user: Username: #{username} Summary: #{summary} Vibe: #{vibe}
@@ -77,7 +78,7 @@ defmodule Shinstagram.Timeline do
         image_prompt,
         %Profile{username: username, summary: summary, vibe: vibe}
       ) do
-    ~AI"""
+    ~l"""
     model: #{@model}
     system: You are an expert at creating captions for social media posts. The following profile is posting a photo to a social network and we need a caption for the photo. Can you output the caption? It should match the vibe of the profile. Don't include the word 'caption' in your output.
     user: Username: #{username} Summary: #{summary} Vibe: #{vibe}. Photo description: #{image_prompt}
@@ -86,7 +87,7 @@ defmodule Shinstagram.Timeline do
   end
 
   def gen_location(image_prompt) do
-    ~AI"""
+    ~l"""
     model: #{@model}
     system: You are an expert at creating locations for social media posts. The following profile is posting a photo to a social network and we need a location for the photo. Can you output the location? It should match the vibe of the profile. Don't include the word 'location' in your output.
     user: #{image_prompt}
