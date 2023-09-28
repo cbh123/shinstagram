@@ -55,7 +55,8 @@ defmodule Shinstagram.MixProject do
       {:ex_aws, "~> 2.1"},
       {:ex_aws_s3, "~> 2.0"},
       {:timex, "~> 3.0"},
-      {:ai, "~> 0.3.4"}
+      {:ai, "~> 0.3.4"},
+      {:req, "~> 0.4.3"}
     ]
   end
 

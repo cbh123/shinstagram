@@ -8,8 +8,7 @@ defmodule Shinstagram.Utils do
   end
 
   def save_r2(uuid, image_url) do
-    {:ok, resp} = :httpc.request(:get, {image_url, []}, [], body_format: :binary)
-    {{_, 200, 'OK'}, _headers, image_binary} = resp
+    image_binary = Req.get!(image_url).body
 
     file_name = "prediction-#{uuid}.png"
     bucket = System.get_env("BUCKET_NAME")

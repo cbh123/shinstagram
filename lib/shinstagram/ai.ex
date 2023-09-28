@@ -5,8 +5,7 @@ defmodule Shinstagram.AI do
   def parse_chat({:error, %{"error" => %{"message" => message}}}), do: {:error, message}
 
   def save_r2(image_url, uuid) do
-    {:ok, resp} = :httpc.request(:get, {image_url, []}, [], body_format: :binary)
-    {{_, 200, ~c"OK"}, _headers, image_binary} = resp
+    image_binary = Req.get!(image_url).body
 
     file_name = "prediction-#{uuid}.png"
     bucket = System.get_env("BUCKET_NAME")
@@ -25,7 +24,12 @@ defmodule Shinstagram.AI do
   """
   def gen_image(image_prompt) when is_binary(image_prompt) do
     model = Replicate.Models.get!("stability-ai/stable-diffusion")
-    version = Replicate.Models.get_latest_version!(model)
+
+    version =
+      Replicate.Models.get_latest_version!(
+        model,
+        "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4"
+      )
 
     {:ok, prediction} = Replicate.Predictions.create(version, %{prompt: image_prompt})
     {:ok, prediction} = Replicate.Predictions.wait(prediction)
