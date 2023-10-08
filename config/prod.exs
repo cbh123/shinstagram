@@ -3,9 +3,9 @@ import Config
 # For production, don't forget to configure the url host
 # to something meaningful, Phoenix uses this information
 # when generating URLs.
-config :emoji, EmojiWeb.Endpoint,
+config :shinstagram, ShinstagramWeb.Endpoint,
   http: [port: {:system, "PORT"}],
-  url: [scheme: "https", host: "shinstagram.com.com", port: 443],
+  url: [scheme: "https", host: "shinstagram.com", port: 443],
   cache_static_manifest: "priv/static/cache_manifest.json",
   check_origin: [
     "https://shinstagram.com",
